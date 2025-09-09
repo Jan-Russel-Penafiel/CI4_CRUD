@@ -190,7 +190,7 @@ When you log in, you'll see:
 1. Go to your system's web address
 2. You'll see a login form
 3. Type the username and password
-4. Click "Login" button
+4. Click "Access System" button
 5. You're now in the system!
 
 ### Security Tips
@@ -598,3 +598,187 @@ Coming soon:
 ---
 
 **Need more help?** Contact your system administrator or IT support team.
+
+---
+
+## 💻 Technical Code Features & Implementation
+
+### 🏗️ **System Architecture**
+**CodeIgniter 4 MVC Framework** with clean separation of concerns:
+```
+app/Controllers/ → Business Logic
+app/Models/     → Data Access  
+app/Views/      → Presentation
+app/Config/     → Configuration
+```
+
+### 🎛️ **Core Controller Features**
+
+#### **Authentication System**
+```php
+private function isAuthenticated() {
+    return $this->session->get('admin_logged_in') === true;
+}
+```
+
+#### **CRUD with Validation**
+```php
+$validationRules = [
+    'product_name' => 'required|min_length[3]|max_length[255]',
+    'price'        => 'required|decimal|greater_than[0]'
+];
+```
+
+#### **Soft Delete System**
+```php
+public function delete($id) {
+    $this->productModel->deleteProduct($id); // Sets status = 'deleted'
+}
+
+public function restore($id) {
+    $this->productModel->restoreProduct($id); // Sets status = 'active'
+}
+```
+
+#### **Bulk Operations**
+```php
+public function bulkDelete() {
+    $json = $this->request->getJSON();
+    $ids = $json->ids ?? [];
+    foreach ($ids as $id) {
+        $this->productModel->deleteProduct($id);
+    }
+    return $this->response->setJSON(['success' => true]);
+}
+```
+
+### 🗄️ **Model Features**
+
+#### **Advanced Search**
+```php
+public function searchProducts($keyword, $perPage = 10) {
+    return $this->where('status', 'active')
+                ->groupStart()
+                ->like('product_name', $keyword)
+                ->orLike('description', $keyword)
+                ->groupEnd()
+                ->paginate($perPage);
+}
+```
+
+#### **Automatic Timestamps**
+```php
+protected $useTimestamps = true;
+protected $createdField = 'created_at';
+protected $updatedField = 'updated_at';
+```
+
+### 🎨 **Frontend Features**
+
+#### **Live Search with Debouncing**
+```javascript
+let searchTimeout;
+document.getElementById('searchInput').addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(performSearch, 300);
+});
+```
+
+#### **CSV Export**
+```javascript
+function exportToCSV() {
+    const csvContent = convertToCSV(products);
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = window.URL.createObjectURL(blob);
+    a.download = `products_${getCurrentDate()}.csv`;
+    a.click();
+}
+```
+
+#### **Print Optimization**
+```css
+@media print {
+    body { background: white !important; color: black !important; }
+    .no-print { display: none !important; }
+}
+```
+
+### 🗃️ **Database Schema**
+```sql
+CREATE TABLE `products` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `product_name` varchar(100) NOT NULL,
+  `description` text NOT NULL,
+  `price` decimal(10,2) NOT NULL,
+  `status` enum('active','deleted') NOT NULL DEFAULT 'active',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  INDEX `idx_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+```
+
+### 🛣️ **RESTful Routes**
+```php
+$routes->get('/', 'ProductController::index');
+$routes->post('login', 'ProductController::login');
+$routes->get('products/create', 'ProductController::showCreateForm');
+$routes->post('products/create', 'ProductController::create');
+$routes->get('products/edit/(:num)', 'ProductController::edit/$1');
+$routes->post('products/update/(:num)', 'ProductController::update/$1');
+$routes->get('products/delete/(:num)', 'ProductController::delete/$1');
+$routes->get('trash', 'ProductController::trash');
+$routes->post('products/bulk-delete', 'ProductController::bulkDelete');
+```
+
+### 🔒 **Security Features**
+
+#### **Input Validation**
+```php
+if (!$this->validate($validationRules)) {
+    return view('create_product', ['validation' => $this->validator]);
+}
+```
+
+#### **SQL Injection Prevention**
+```php
+$this->where('status', 'active')->like('product_name', $keyword)->paginate($perPage);
+```
+
+#### **Authentication Guards**
+```php
+if (!$this->isAuthenticated()) {
+    return redirect()->to('/');
+}
+```
+
+### 📱 **Responsive Design**
+```css
+@media (max-width: 768px) {
+    .table-responsive { font-size: 0.8rem; }
+    .btn { min-height: 44px; min-width: 44px; }
+}
+```
+
+### ⚡ **Performance Features**
+- **Pagination**: Limits query results for better performance
+- **Debounced Search**: Reduces server requests (300ms delay)
+- **Indexed Queries**: Optimized database indexes on status and name fields
+- **AJAX Operations**: Asynchronous bulk operations without page reload
+
+### 🏆 **Key Achievements**
+✅ **CodeIgniter 4** - Modern PHP framework  
+✅ **MVC Architecture** - Clean code separation  
+✅ **Bootstrap 5** - Responsive mobile-first design  
+✅ **AJAX/JavaScript** - Real-time interactions  
+✅ **Soft Delete** - Safe data management  
+✅ **CSV Export** - Data portability  
+✅ **Print Ready** - Professional formatting  
+✅ **Bulk Operations** - Efficient processing  
+✅ **Search & Pagination** - Fast data access  
+✅ **Security** - Input validation & SQL injection prevention  
+
+---
+
+**Framework**: CodeIgniter 4.x | **PHP**: 8.2+ | **Database**: MariaDB/MySQL 5.7+

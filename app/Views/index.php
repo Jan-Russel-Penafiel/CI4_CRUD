@@ -1421,8 +1421,9 @@
 
             updateProductCount(tempDiv) {
                 const element = tempDiv.querySelector('#productCountText');
-                if (element) {
-                    document.getElementById('productCountText').innerHTML = element.innerHTML;
+                const targetElement = document.getElementById('productCountText');
+                if (element && targetElement) {
+                    targetElement.innerHTML = element.innerHTML;
                 }
             },
 
@@ -1568,8 +1569,32 @@
         // Real-time Update Manager
         const RealTimeUpdater = {
             start() {
+                // Check if required DOM elements exist before starting auto-refresh
+                if (!this.validateDOMElements()) {
+                    console.warn('Required DOM elements not found, retrying in 5 seconds...');
+                    setTimeout(() => this.start(), 5000);
+                    return;
+                }
+                
                 UIHelper.updateAutoRefreshStatus('connected', 'Auto-sync ON');
                 RealTimeConfig.autoRefreshInterval = setInterval(() => this.checkForUpdates(), RealTimeConfig.updateCheckInterval);
+            },
+
+            validateDOMElements() {
+                const requiredElements = [
+                    'productCountText',
+                    'productsTableContainer',
+                    'searchInput'
+                ];
+                
+                return requiredElements.every(elementId => {
+                    const element = document.getElementById(elementId);
+                    if (!element) {
+                        console.warn(`Required element not found: ${elementId}`);
+                        return false;
+                    }
+                    return true;
+                });
             },
 
             stop() {
@@ -1584,7 +1609,15 @@
             checkForUpdates() {
                 if (AppState.isUserInteracting) return;
                 
-                const searchValue = document.getElementById('searchInput')?.value?.trim() || '';
+                // Additional safety check for DOM elements
+                if (!this.validateDOMElements()) {
+                    console.warn('DOM elements missing during update check, stopping auto-refresh');
+                    this.stop();
+                    return;
+                }
+                
+                const searchInput = document.getElementById('searchInput');
+                const searchValue = searchInput?.value?.trim() || '';
                 const urlParams = new URLSearchParams(window.location.search);
                 const currentPageParam = urlParams.get('page') || '1';
 
@@ -1612,18 +1645,23 @@
             },
 
             handleUpdateResponse(html) {
-                const temp = document.createElement('div');
-                temp.innerHTML = html;
-                const hasChanges = this.detectChanges(temp);
-                
-                if (hasChanges && !AppState.isUserInteracting) {
-                    this.updateProductsTable(temp);
-                    RealTimeConfig.lastUpdateTime = new Date().getTime();
-                    RealTimeConfig.connectionRetryCount = 0;
-                    UIHelper.updateAutoRefreshStatus('connected', 'Auto-sync ON');
-                } else {
-                    UIHelper.updateAutoRefreshStatus('connected', 'Auto-sync ON');
-                    this.updatePaginationAndCounts(temp);
+                try {
+                    const temp = document.createElement('div');
+                    temp.innerHTML = html;
+                    const hasChanges = this.detectChanges(temp);
+                    
+                    if (hasChanges && !AppState.isUserInteracting) {
+                        this.updateProductsTable(temp);
+                        RealTimeConfig.lastUpdateTime = new Date().getTime();
+                        RealTimeConfig.connectionRetryCount = 0;
+                        UIHelper.updateAutoRefreshStatus('connected', 'Auto-sync ON');
+                    } else {
+                        UIHelper.updateAutoRefreshStatus('connected', 'Auto-sync ON');
+                        this.updatePaginationAndCounts(temp);
+                    }
+                } catch (error) {
+                    console.error('Error processing update response:', error);
+                    this.handleUpdateError(error);
                 }
             },
 
@@ -1740,8 +1778,9 @@
 
             updateProductCount(tempDiv) {
                 const count = tempDiv.querySelector('#productCountText');
-                if (count) {
-                    document.getElementById('productCountText').innerHTML = count.innerHTML;
+                const targetElement = document.getElementById('productCountText');
+                if (count && targetElement) {
+                    targetElement.innerHTML = count.innerHTML;
                 }
             },
 
