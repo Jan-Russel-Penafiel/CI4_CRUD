@@ -2752,10 +2752,8 @@
                     const filename = this._createFilename(selectedOnly);
                     
                     this._downloadFile(csvContent, filename, 'text/csv');
-                    this._showExportSuccess(products.length, filename);
                 } catch (error) {
                     console.error('Export error:', error);
-                    NotificationService.showError('Export failed. Please try again.');
                 }
             },
 
@@ -2936,10 +2934,6 @@
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-            },
-
-            _showExportSuccess(count, filename) {
-                NotificationService.showSuccess(`Exported ${count} product(s) to ${filename}`);
             },
 
             // Private methods - Data extraction
