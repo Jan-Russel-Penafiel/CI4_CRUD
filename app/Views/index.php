@@ -84,7 +84,7 @@
 
         .search-container {
             background-color: var(--primary-white);
-            padding: 1rem;
+            padding: .6rem;
             border-radius: 8px;
             margin-bottom: 1rem;
             border: 2px solid var(--border-color)
@@ -195,6 +195,28 @@
             .pagination-info {
                 text-align: center;
                 margin-bottom: 1rem
+            }
+            
+            .search-container .row {
+                flex-direction: column;
+            }
+            
+            .search-container .col-md-6,
+            .search-container .col-md-4,
+            .search-container .col-md-2 {
+                margin-bottom: .5rem;
+            }
+            
+            .search-container .btn-group {
+                display: flex;
+                flex-direction: row;
+                gap: 2px;
+            }
+            
+            .search-container .btn-group .btn {
+                font-size: .65rem;
+                padding: .2rem .4rem;
+                flex: 1;
             }
         }
 
@@ -428,6 +450,70 @@
         .select-checkbox {
             cursor: pointer;
             transform: scale(1.1)
+        }
+
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            
+            .print-area,
+            .print-area * {
+                visibility: visible;
+            }
+            
+            .print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            
+            .no-print {
+                display: none !important;
+            }
+            
+            .header,
+            .search-container,
+            .card-header,
+            .pagination,
+            .floating-bulk-actions,
+            button,
+            .btn {
+                display: none !important;
+            }
+            
+            .table {
+                border-collapse: collapse;
+                width: 100%;
+            }
+            
+            .table th,
+            .table td {
+                border: 1px solid #000;
+                padding: 8px;
+                text-align: left;
+            }
+            
+            .table th {
+                background-color: #f0f0f0;
+                font-weight: bold;
+            }
+            
+            .print-title {
+                font-size: 18px;
+                font-weight: bold;
+                text-align: center;
+                margin-bottom: 20px;
+                color: #000;
+            }
+            
+            .print-date {
+                text-align: right;
+                font-size: 12px;
+                margin-bottom: 10px;
+                color: #666;
+            }
         }
 
         .product-row.selected {
@@ -667,9 +753,23 @@
 
             <div class="search-container">
                 <div class="row g-3" id="searchContainer">
-                    <div class="col-md-10">
+                    <div class="col-md-6">
                         <div class="input-group"><span class="input-group-text"><i class="fas fa-search"></i></span><input type="text" class="form-control" name="search" id="searchInput" placeholder="Type to search products (auto-search)..." value="<?= esc($search) ?>" maxlength="255" autocomplete="off">
                             <div class="invalid-feedback" id="searchError"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn btn-outline-black" onclick="printProducts()" title="Print Products List">
+                                <i class="fas fa-print me-1"></i>Print
+                            </button>
+                            <button type="button" class="btn btn-outline-black" onclick="exportToCSV()" title="Export to CSV">
+                                <i class="fas fa-file-csv me-1"></i>Export CSV
+                            </button>
+                            <button type="button" class="btn btn-outline-black" onclick="exportSelectedToCSV()" 
+                                    id="exportSelectedBtn" style="display: none;" title="Export Selected to CSV">
+                                <i class="fas fa-file-export me-1"></i>Export Selected
+                            </button>
                         </div>
                     </div>
                     <div class="col-md-2"><?php if (!empty($search)): ?><button type="button" class="btn btn-outline-black w-100" onclick="clearSearch()"><i class="fas fa-times me-2"></i>Clear</button><?php else: ?><a href="/products/create" class="btn btn-black w-100"><i class="fas fa-plus me-2"></i>Add Product</a><?php endif; ?></div>
@@ -904,138 +1004,366 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        let isLoading = false,
-            searchTimeout = null,
-            currentPage = 1,
-            currentSearch = '<?= esc($search ?? "") ?>',
-            globalAutoRefreshInterval = null,
-            globalProductHashes = new Map(),
-            globalLastUpdateTime = new Date().getTime(),
-            globalConnectionRetryCount = 0,
-            globalMaxRetryAttempts = 5,
-            globalUpdateCheckInterval = 1000,
-            isUserInteracting = false,
-            maxToasts = 5,
-            loadingToastId = null,
-            currentRestoreId = null,
-            currentPermanentDeleteId = null,
-            tooltipInitTimeout = null;
+        // Application State Management
+        const AppState = {
+            isLoading: false,
+            searchTimeout: null,
+            currentPage: 1,
+            currentSearch: '<?= esc($search ?? "") ?>',
+            isUserInteracting: false,
+            currentRestoreId: null,
+            currentPermanentDeleteId: null,
+            tooltipInitTimeout: null
+        };
 
+        // Real-time Update Configuration
+        const RealTimeConfig = {
+            autoRefreshInterval: null,
+            productHashes: new Map(),
+            lastUpdateTime: new Date().getTime(),
+            connectionRetryCount: 0,
+            maxRetryAttempts: 5,
+            updateCheckInterval: 1000
+        };
+
+        // Toast Notification Configuration
+        const ToastConfig = {
+            maxToasts: 5,
+            loadingToastId: null
+        };
+
+        // Application Initialization
         document.addEventListener('DOMContentLoaded', function() {
-            <?php if (session()->getFlashdata('success')): ?>showNotification('<?= addslashes(session()->getFlashdata('success')) ?>', 'success');
-        <?php endif; ?>
-        <?php if (session()->getFlashdata('error')): ?>showNotification('<?= addslashes(session()->getFlashdata('error')) ?>', 'error');
-        <?php endif; ?>
-
-        const loginForm = document.getElementById('loginForm');
-        if (loginForm) {
-            initializeLoginForm();
-        } else {
-            initializeTooltips();
-            initializeAutoSearch();
-            loadProductsTable();
-            setTimeout(() => startGlobalRealTimeUpdates(), 2000);
-        }
+            NotificationService.initializeFlashMessages();
+            
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                LoginManager.initialize();
+            } else {
+                AppInitializer.initializeMainApp();
+            }
         });
 
-        function initializeLoginForm() {
-            const f = document.getElementById('loginForm'),
-                u = document.getElementById('username'),
-                p = document.getElementById('password');
-            if (u) u.focus();
+        // Flash Message Initialization
+        const NotificationService = {
+            initializeFlashMessages() {
+                <?php if (session()->getFlashdata('success')): ?>
+                this.showNotification('<?= addslashes(session()->getFlashdata('success')) ?>', 'success');
+                <?php endif; ?>
+                <?php if (session()->getFlashdata('error')): ?>
+                this.showNotification('<?= addslashes(session()->getFlashdata('error')) ?>', 'error');
+                <?php endif; ?>
+            },
 
-            f.addEventListener('submit', function(e) {
-                let valid = true;
-                clearLoginErrors();
-
-                if (!u.value.trim()) {
-                    showLoginError(u, 'Username is required.');
-                    valid = false;
-                } else if (u.value.trim().length < 3) {
-                    showLoginError(u, 'Username must be at least 3 characters.');
-                    valid = false;
+            showNotification(message, type = 'info') {
+                const container = document.querySelector('.toast-container');
+                if (!container) {
+                    console.error('Toast container not found');
+                    return;
                 }
 
-                if (!p.value) {
-                    showLoginError(p, 'Password is required.');
-                    valid = false;
-                } else if (p.value.length < 6) {
-                    showLoginError(p, 'Password must be at least 6 characters.');
-                    valid = false;
+                const toasts = container.querySelectorAll('.toast');
+                if (toasts.length >= ToastConfig.maxToasts) {
+                    this.removeOldestToast(toasts);
                 }
 
-                if (!valid) {
+                const toastId = this.generateToastId();
+                const config = this.getToastConfig(type);
+                const html = this.buildToastHTML(toastId, config, message, type);
+
+                container.insertAdjacentHTML('beforeend', html);
+                return this.showToast(toastId, config, type);
+            },
+
+            removeOldestToast(toasts) {
+                const oldest = toasts[0];
+                const bsToast = bootstrap.Toast.getInstance(oldest);
+                if (bsToast) {
+                    bsToast.hide();
+                } else {
+                    oldest.remove();
+                }
+            },
+
+            generateToastId() {
+                return 'toast-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            },
+
+            getToastConfig(type) {
+                const configs = {
+                    'success': { bgClass: 'bg-success', icon: 'fas fa-check-circle', title: 'Success', delay: 4000 },
+                    'error': { bgClass: 'bg-danger', icon: 'fas fa-exclamation-circle', title: 'Error', delay: 6000 },
+                    'info': { bgClass: 'bg-info', icon: 'fas fa-info-circle', title: 'Information', delay: 5000 },
+                    'loading': { bgClass: 'bg-primary', icon: 'fas fa-spinner fa-spin', title: 'Loading', delay: 0 }
+                };
+                return configs[type] || configs['info'];
+            },
+
+            buildToastHTML(toastId, config, message, type) {
+                const closeButton = type !== 'loading' 
+                    ? '<button type="button" class="btn-close" data-bs-dismiss="toast"></button>' 
+                    : '';
+
+                return `<div class="toast ${config.bgClass}" id="${toastId}" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header">
+                        <i class="${config.icon} me-2"></i>
+                        <strong class="me-auto">${config.title}</strong>
+                        ${closeButton}
+                    </div>
+                    <div class="toast-body">${message}</div>
+                </div>`;
+            },
+
+            showToast(toastId, config, type) {
+                const toastEl = document.getElementById(toastId);
+                const toast = new bootstrap.Toast(toastEl, {
+                    delay: config.delay,
+                    autohide: config.delay > 0
+                });
+
+                toastEl.addEventListener('hidden.bs.toast', () => {
+                    toastEl.remove();
+                    if (ToastConfig.loadingToastId === toastId) {
+                        ToastConfig.loadingToastId = null;
+                    }
+                });
+
+                toast.show();
+                toastEl.style.animation = 'slideInBottom 0.3s ease-out';
+                
+                if (type === 'loading') {
+                    ToastConfig.loadingToastId = toastId;
+                }
+                
+                return { toast, toastId };
+            },
+
+            showSuccess(message) {
+                this.showNotification(message, 'success');
+            },
+
+            showError(message) {
+                this.showNotification(message, 'error');
+            },
+
+            showInfo(message) {
+                this.showNotification(message, 'info');
+            },
+
+            showLoading(message) {
+                this.hideLoading();
+                return this.showNotification(message, 'loading');
+            },
+
+            hideLoading() {
+                if (ToastConfig.loadingToastId) {
+                    const toast = document.getElementById(ToastConfig.loadingToastId);
+                    if (toast) {
+                        const bs = bootstrap.Toast.getInstance(toast);
+                        if (bs) bs.hide();
+                    }
+                    ToastConfig.loadingToastId = null;
+                }
+            },
+
+            clearAll() {
+                document.querySelectorAll('.toast').forEach(t => {
+                    const bs = bootstrap.Toast.getInstance(t);
+                    if (bs) bs.hide();
+                });
+            }
+        };
+
+        // Application Initializer
+        const AppInitializer = {
+            initializeMainApp() {
+                TooltipManager.initialize();
+                SearchManager.initialize();
+                ProductTableManager.loadInitial();
+                setTimeout(() => RealTimeUpdater.start(), 2000);
+            }
+        };
+
+        // Login Management
+        const LoginManager = {
+            initialize() {
+                const form = document.getElementById('loginForm');
+                const username = document.getElementById('username');
+                const password = document.getElementById('password');
+                
+                if (username) username.focus();
+                
+                this.attachEventListeners(form, username, password);
+            },
+
+            attachEventListeners(form, username, password) {
+                form.addEventListener('submit', (e) => this.handleSubmit(e, username, password, form));
+                username.addEventListener('keypress', (e) => this.handleUsernameKeypress(e, password));
+                password.addEventListener('keypress', (e) => this.handlePasswordKeypress(e, form));
+            },
+
+            handleSubmit(e, username, password, form) {
+                if (!this.validateForm(username, password)) {
                     e.preventDefault();
                     return false;
                 }
 
-                const btn = f.querySelector('button[type="submit"]');
+                const btn = form.querySelector('button[type="submit"]');
                 btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Signing In...';
                 btn.disabled = true;
-            });
+            },
 
-            u.addEventListener('keypress', e => e.key === 'Enter' && (e.preventDefault(), p.focus()));
-            p.addEventListener('keypress', e => e.key === 'Enter' && (e.preventDefault(), f.querySelector('button[type="submit"]').click()));
-        }
+            validateForm(username, password) {
+                let isValid = true;
+                this.clearErrors();
 
-        function showLoginError(input, message) {
-            input.classList.add('is-invalid');
-            const existing = input.parentNode.querySelector('.invalid-feedback');
-            if (existing) existing.remove();
-            const error = document.createElement('div');
-            error.className = 'invalid-feedback';
-            error.textContent = message;
-            input.parentNode.appendChild(error);
-        }
+                if (!this.validateUsername(username)) isValid = false;
+                if (!this.validatePassword(password)) isValid = false;
 
-        function clearLoginErrors() {
-            document.querySelectorAll('#loginForm .form-control').forEach(input => {
-                input.classList.remove('is-invalid');
-                const error = input.parentNode.querySelector('.invalid-feedback');
-                if (error) error.remove();
-            });
-        }
+                return isValid;
+            },
 
-        function initializeAutoSearch() {
-            const search = document.getElementById('searchInput');
-            if (!search) return;
+            validateUsername(username) {
+                const value = username.value.trim();
+                if (!value) {
+                    this.showError(username, 'Username is required.');
+                    return false;
+                }
+                if (value.length < 3) {
+                    this.showError(username, 'Username must be at least 3 characters.');
+                    return false;
+                }
+                return true;
+            },
 
-            search.addEventListener('input', function() {
-                clearTimeout(searchTimeout);
-                const query = this.value.trim();
-                clearSearchError();
-                if (query.length > 0 && !validateSearchInput(query)) return;
-                searchTimeout = setTimeout(() => performSearch(query), 500);
-            });
+            validatePassword(password) {
+                const value = password.value;
+                if (!value) {
+                    this.showError(password, 'Password is required.');
+                    return false;
+                }
+                if (value.length < 6) {
+                    this.showError(password, 'Password must be at least 6 characters.');
+                    return false;
+                }
+                return true;
+            },
 
-            search.addEventListener('keydown', function(e) {
+            showError(input, message) {
+                input.classList.add('is-invalid');
+                const existing = input.parentNode.querySelector('.invalid-feedback');
+                if (existing) existing.remove();
+                
+                const error = document.createElement('div');
+                error.className = 'invalid-feedback';
+                error.textContent = message;
+                input.parentNode.appendChild(error);
+            },
+
+            clearErrors() {
+                document.querySelectorAll('#loginForm .form-control').forEach(input => {
+                    input.classList.remove('is-invalid');
+                    const error = input.parentNode.querySelector('.invalid-feedback');
+                    if (error) error.remove();
+                });
+            },
+
+            handleUsernameKeypress(e, password) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    clearTimeout(searchTimeout);
-                    const query = this.value.trim();
-                    if (query.length === 0 || validateSearchInput(query)) performSearch(query);
+                    password.focus();
                 }
-            });
-        }
+            },
 
-        function performSearch(query, page = 1) {
-            if (isLoading) return;
-            showLoadingToast(query.length > 0 ? 'Searching...' : 'Loading all products...');
-            setLoading(true);
+            handlePasswordKeypress(e, form) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    form.querySelector('button[type="submit"]').click();
+                }
+            }
+        };
 
-            // Store current selections and select all state before search
-            const selectedIds = getSelectedIds('main');
-            const selectAllMain = document.getElementById('selectAllMain');
-            const selectAllState = selectAllMain ? {
-                checked: selectAllMain.checked,
-                indeterminate: selectAllMain.indeterminate
-            } : null;
+        // Search Management
+        const SearchManager = {
+            initialize() {
+                const searchInput = document.getElementById('searchInput');
+                if (!searchInput) return;
 
-            const url = new URL(window.location.origin + '/');
-            if (query.length > 0) url.searchParams.set('search', query);
-            if (page > 1) url.searchParams.set('page', page);
+                this.attachEventListeners(searchInput);
+            },
 
-            fetch(url, {
+            attachEventListeners(searchInput) {
+                searchInput.addEventListener('input', (e) => this.handleInput(e));
+                searchInput.addEventListener('keydown', (e) => this.handleKeydown(e));
+            },
+
+            handleInput(e) {
+                clearTimeout(AppState.searchTimeout);
+                const query = e.target.value.trim();
+                
+                this.clearError();
+                
+                if (query.length > 0 && !this.validateInput(query)) {
+                    return;
+                }
+                
+                AppState.searchTimeout = setTimeout(() => this.performSearch(query), 500);
+            },
+
+            handleKeydown(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    clearTimeout(AppState.searchTimeout);
+                    const query = e.target.value.trim();
+                    
+                    if (query.length === 0 || this.validateInput(query)) {
+                        this.performSearch(query);
+                    }
+                }
+            },
+
+            validateInput(value) {
+                if (value.length < 2) {
+                    this.showError('Search term must be at least 2 characters long.');
+                    return false;
+                }
+                if (value.length > 255) {
+                    this.showError('Search term cannot exceed 255 characters.');
+                    return false;
+                }
+                if (!/^[a-zA-Z0-9\s\-._]+$/.test(value)) {
+                    this.showError('Only letters, numbers, spaces, hyphens, dots, and underscores are allowed.');
+                    return false;
+                }
+                return true;
+            },
+
+            showError(message) {
+                const input = document.getElementById('searchInput');
+                const error = document.getElementById('searchError');
+                input.classList.add('is-invalid');
+                error.textContent = message;
+            },
+
+            clearError() {
+                const input = document.getElementById('searchInput');
+                const error = document.getElementById('searchError');
+                input.classList.remove('is-invalid');
+                error.textContent = '';
+            },
+
+            performSearch(query, page = 1) {
+                if (AppState.isLoading) return;
+                
+                NotificationService.showLoading(query.length > 0 ? 'Searching...' : 'Loading all products...');
+                UIHelper.setLoading(true);
+
+                const selectedIds = SelectionManager.getSelectedIds('main');
+                const selectAllState = SelectionManager.getSelectAllState('main');
+
+                const url = this.buildSearchURL(query, page);
+
+                fetch(url, {
                     method: 'GET',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
@@ -1043,261 +1371,70 @@
                     }
                 })
                 .then(response => response.ok ? response.text() : Promise.reject('Network error'))
-                .then(html => {
-                    const temp = document.createElement('div');
-                    temp.innerHTML = html;
-                    disposeAllTooltips();
+                .then(html => this.handleSearchSuccess(html, query, page, selectedIds, selectAllState))
+                .catch(error => this.handleSearchError(error))
+                .finally(() => UIHelper.setLoading(false));
+            },
 
-                    const newTable = temp.querySelector('#productsTableContainer');
-                    if (newTable) document.getElementById('productsTableContainer').innerHTML = newTable.innerHTML;
+            buildSearchURL(query, page) {
+                const url = new URL(window.location.origin + '/');
+                if (query.length > 0) url.searchParams.set('search', query);
+                if (page > 1) url.searchParams.set('page', page);
+                return url;
+            },
 
-                    const newPag = temp.querySelector('.mt-4'),
-                        currentPag = document.querySelector('.mt-4');
-                    if (newPag && currentPag) currentPag.innerHTML = newPag.innerHTML;
+            handleSearchSuccess(html, query, page, selectedIds, selectAllState) {
+                const temp = document.createElement('div');
+                temp.innerHTML = html;
+                
+                TooltipManager.disposeAll();
+                this.updateUI(temp, query, page);
+                this.restoreSelections(selectedIds, selectAllState);
+                this.updateHistory(query);
+                
+                TooltipManager.initialize();
+                NotificationService.hideLoading();
+            },
 
-                    updateProductCount(temp);
-                    updateSearchResults(query, temp);
-                    currentSearch = query;
-                    currentPage = page;
+            updateUI(tempDiv, query, page) {
+                const newTable = tempDiv.querySelector('#productsTableContainer');
+                if (newTable) {
+                    document.getElementById('productsTableContainer').innerHTML = newTable.innerHTML;
+                }
 
-                    // Restore individual selections after search if products still exist
-                    selectedIds.forEach(id => {
-                        const checkbox = document.querySelector(`.product-checkbox[value="${id}"]`);
-                        if (checkbox) {
-                            checkbox.checked = true;
-                            const row = checkbox.closest('tr');
-                            if (row) row.classList.add('selected');
-                        }
-                    });
+                this.updatePagination(tempDiv);
+                this.updateProductCount(tempDiv);
+                this.updateSearchResults(query, tempDiv);
+                
+                AppState.currentSearch = query;
+                AppState.currentPage = page;
+            },
 
-                    // Restore select all state
-                    if (selectAllState) {
-                        const newSelectAllMain = document.getElementById('selectAllMain');
-                        if (newSelectAllMain) {
-                            newSelectAllMain.checked = selectAllState.checked;
-                            newSelectAllMain.indeterminate = selectAllState.indeterminate;
-                        }
-                    }
+            updatePagination(tempDiv) {
+                const newPag = tempDiv.querySelector('.mt-4');
+                const currentPag = document.querySelector('.mt-4');
+                
+                if (newPag && currentPag) {
+                    currentPag.innerHTML = newPag.innerHTML;
+                }
+            },
 
-                    const newUrl = query.length > 0 ? `/?search=${encodeURIComponent(query)}` : '/';
-                    window.history.pushState({
-                        search: query,
-                        page: page
-                    }, '', newUrl);
-                    
-                    // Update bulk actions after restoring selections
-                    updateBulkActions('main');
-                    initializeTooltips();
-                    hideLoadingToast();
-                })
-                .catch(error => {
-                    console.error('Search error:', error);
-                    hideLoadingToast();
-                    showNotification('Error loading products. Please try again.', 'error');
-                })
-                .finally(() => setLoading(false));
-        }
+            updateProductCount(tempDiv) {
+                const element = tempDiv.querySelector('#productCountText');
+                if (element) {
+                    document.getElementById('productCountText').innerHTML = element.innerHTML;
+                }
+            },
 
-        function updateProductCount(div) {
-            const el = div.querySelector('#productCountText');
-            if (el) document.getElementById('productCountText').innerHTML = el.innerHTML;
-        }
+            updateSearchResults(query, tempDiv) {
+                if (query.length > 0) {
+                    const count = tempDiv.querySelectorAll('tbody tr').length;
+                    const message = `Search completed for "${query}"${count > 0 ? ` - Found ${count} product(s).` : ' - No products found.'}`;
+                    NotificationService.showInfo(message);
+                }
+            },
 
-        function updateSearchResults(query, div) {
-            if (query.length > 0) {
-                const count = div.querySelectorAll('tbody tr').length;
-                showInfoToast(`Search completed for "${query}"${count > 0 ? ` - Found ${count} product(s).` : ' - No products found.'}`);
-            }
-        }
-
-        function loadProductsTable() {
-            const container = document.getElementById('productsTableContainer');
-            if (!container || container.innerHTML.trim()) return;
-            // PHP table content will be rendered server-side
-        }
-
-        function validateSearchInput(value) {
-            if (value.length < 2) return showSearchError('Search term must be at least 2 characters long.'), false;
-            if (value.length > 255) return showSearchError('Search term cannot exceed 255 characters.'), false;
-            if (!/^[a-zA-Z0-9\s\-._]+$/.test(value)) return showSearchError('Only letters, numbers, spaces, hyphens, dots, and underscores are allowed.'), false;
-            return true;
-        }
-
-        function showSearchError(message) {
-            const input = document.getElementById('searchInput'),
-                error = document.getElementById('searchError');
-            input.classList.add('is-invalid');
-            error.textContent = message;
-        }
-
-        function clearSearchError() {
-            const input = document.getElementById('searchInput'),
-                error = document.getElementById('searchError');
-            input.classList.remove('is-invalid');
-            error.textContent = '';
-        }
-
-        function setLoading(loading) {
-            isLoading = loading;
-            const icon = document.getElementById('refreshIcon');
-            icon.classList.toggle('fa-spin', loading);
-        }
-
-        // Event handlers
-        window.addEventListener('popstate', e => {
-            const search = document.getElementById('searchInput');
-            const param = new URLSearchParams(window.location.search).get('search') || '';
-            search.value = param;
-            currentSearch = param;
-            performSearch(param);
-        });
-
-        window.addEventListener('online', () => showNotification('Connection restored.', 'success'));
-        window.addEventListener('offline', () => showNotification('Connection lost. Please check your internet connection.', 'error'));
-        window.addEventListener('beforeunload', () => disposeAllTooltips());
-
-        document.addEventListener('keydown', function(e) {
-            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-                e.preventDefault();
-                const search = document.getElementById('searchInput');
-                if (search) search.focus(), search.select();
-            }
-            if (e.key === 'Escape') {
-                const search = document.getElementById('searchInput');
-                if (search && search === document.activeElement) clearSearch();
-            }
-        });
-
-        // Real-time updates
-        function startGlobalRealTimeUpdates() {
-            updateGlobalAutoRefreshStatus('connected', 'Auto-sync ON');
-            globalAutoRefreshInterval = setInterval(checkGlobalForUpdates, globalUpdateCheckInterval);
-        }
-
-        function stopGlobalRealTimeUpdates() {
-            if (globalAutoRefreshInterval) clearInterval(globalAutoRefreshInterval), globalAutoRefreshInterval = null;
-            updateGlobalAutoRefreshStatus('error', 'Reconnecting...');
-            showGlobalStatus('error', 'Reconnecting to server');
-        }
-
-        function checkGlobalForUpdates() {
-            if (isUserInteracting) return;
-            const search = document.getElementById('searchInput')?.value?.trim() || '';
-            
-            // Get current page from URL or default to 1
-            const urlParams = new URLSearchParams(window.location.search);
-            const currentPageParam = urlParams.get('page') || '1';
-
-            // Build URL with both search and page parameters
-            const url = new URL(window.location.origin + '/');
-            if (search.length > 0) url.searchParams.set('search', search);
-            if (currentPageParam !== '1') url.searchParams.set('page', currentPageParam);
-
-            fetch(url.toString(), {
-                    method: 'GET',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'Accept': 'application/json',
-                        'X-Check-Updates': 'true',
-                        'X-Last-Update': globalLastUpdateTime.toString()
-                    }
-                })
-                .then(response => response.ok ? response.text() : Promise.reject('Network error'))
-                .then(html => {
-                    const temp = document.createElement('div');
-                    temp.innerHTML = html;
-                    const hasChanges = detectGlobalProductChanges(temp);
-                    if (hasChanges && !isUserInteracting) {
-                        updateGlobalProductsTable(temp);
-                        globalLastUpdateTime = new Date().getTime();
-                        globalConnectionRetryCount = 0;
-                        updateGlobalAutoRefreshStatus('connected', 'Auto-sync ON');
-                    } else {
-                        updateGlobalAutoRefreshStatus('connected', 'Auto-sync ON');
-                        // Force update pagination and counts even if no table changes detected
-                        updatePaginationAndCounts(temp);
-                    }
-                })
-                .catch(error => {
-                    console.error('Auto-refresh error:', error);
-                    globalConnectionRetryCount++;
-                    if (globalConnectionRetryCount >= globalMaxRetryAttempts) {
-                        stopGlobalRealTimeUpdates();
-                        showGlobalStatus('error', 'Connection lost - Retrying in 30 seconds');
-                        setTimeout(() => {
-                            globalConnectionRetryCount = 0;
-                            startGlobalRealTimeUpdates();
-                        }, 500);
-                    } else {
-                        updateGlobalAutoRefreshStatus('error', `Retry ${globalConnectionRetryCount}/${globalMaxRetryAttempts}`);
-                    }
-                });
-        }
-
-        function detectGlobalProductChanges(div) {
-            // Check for changes in products table
-            const newContent = div.querySelector('#productsTableContainer'),
-                currentContent = document.querySelector('#productsTableContainer');
-            
-            let hasTableChanges = false;
-            if (!newContent || !currentContent) {
-                hasTableChanges = !currentContent;
-            } else {
-                hasTableChanges = currentContent.innerHTML.replace(/\s+/g, ' ').trim() !== newContent.innerHTML.replace(/\s+/g, ' ').trim();
-            }
-            
-            // Check for changes in product count (header)
-            const newCount = div.querySelector('#productCountText'),
-                currentCount = document.querySelector('#productCountText');
-            let hasCountChanges = false;
-            if (newCount && currentCount) {
-                hasCountChanges = currentCount.innerHTML.trim() !== newCount.innerHTML.trim();
-            }
-            
-            // Check for changes in pagination
-            const newPagination = div.querySelector('.mt-4'),
-                currentPagination = document.querySelector('.mt-4');
-            let hasPaginationChanges = false;
-            if (newPagination && currentPagination) {
-                hasPaginationChanges = currentPagination.innerHTML.replace(/\s+/g, ' ').trim() !== newPagination.innerHTML.replace(/\s+/g, ' ').trim();
-            } else if (newPagination || currentPagination) {
-                hasPaginationChanges = true; // One exists, other doesn't
-            }
-            
-            return hasTableChanges || hasCountChanges || hasPaginationChanges;
-        }
-
-        function updateGlobalProductsTable(div) {
-            const newContent = div.querySelector('#productsTableContainer'),
-                container = document.getElementById('productsTableContainer');
-            if (!newContent || !container) return;
-
-            // Store current selections and select all state
-            const selectedIds = getSelectedIds('main');
-            const selectAllMain = document.getElementById('selectAllMain');
-            const selectAllState = selectAllMain ? {
-                checked: selectAllMain.checked,
-                indeterminate: selectAllMain.indeterminate
-            } : null;
-
-            // Check if table content has changed
-            const currentHTML = container.innerHTML.replace(/\s+/g, ' ').trim(),
-                newHTML = newContent.innerHTML.replace(/\s+/g, ' ').trim();
-            
-            // Update table content only if it has changed
-            if (currentHTML !== newHTML) {
-                document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
-                    const tooltip = bootstrap.Tooltip.getInstance(el);
-                    if (tooltip) tooltip.hide();
-                });
-
-                container.innerHTML = newContent.innerHTML;
-                container.querySelectorAll('tbody tr').forEach(row => {
-                    row.classList.add('product-row-updated');
-                    setTimeout(() => row.classList.remove('product-row-updated'), 2000);
-                });
-
-                // Restore individual product selections
+            restoreSelections(selectedIds, selectAllState) {
                 selectedIds.forEach(id => {
                     const checkbox = document.querySelector(`.product-checkbox[value="${id}"]`);
                     if (checkbox) {
@@ -1307,7 +1444,6 @@
                     }
                 });
 
-                // Restore select all state
                 if (selectAllState) {
                     const newSelectAllMain = document.getElementById('selectAllMain');
                     if (newSelectAllMain) {
@@ -1315,366 +1451,720 @@
                         newSelectAllMain.indeterminate = selectAllState.indeterminate;
                     }
                 }
-            }
 
-            // Always update pagination and counts (these can change independently of table content)
-            const newPag = div.querySelector('.mt-4'),
-                currentPag = document.querySelector('.mt-4');
-            
-            // Handle pagination updates - covers all scenarios
-            if (newPag && currentPag) {
-                // Both exist - update content
-                currentPag.innerHTML = newPag.innerHTML;
-            } else if (newPag && !currentPag) {
-                // New pagination exists but current doesn't - add it after the products card
-                const productsCard = document.querySelector('.card');
-                if (productsCard && productsCard.parentNode) {
-                    const newPagElement = newPag.cloneNode(true);
-                    productsCard.parentNode.insertBefore(newPagElement, productsCard.nextSibling);
+                SelectionManager.updateBulkActions('main');
+            },
+
+            updateHistory(query) {
+                const newUrl = query.length > 0 ? `/?search=${encodeURIComponent(query)}` : '/';
+                window.history.pushState({ search: query, page: AppState.currentPage }, '', newUrl);
+            },
+
+            handleSearchError(error) {
+                console.error('Search error:', error);
+                NotificationService.hideLoading();
+                NotificationService.showError('Error loading products. Please try again.');
+            },
+
+            clear() {
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) {
+                    searchInput.value = '';
+                    this.clearError();
+                    this.performSearch('');
                 }
-            } else if (!newPag && currentPag) {
-                // Current pagination exists but new doesn't - remove it
-                currentPag.remove();
             }
+        };
 
-            // Update product count in header
-            const count = div.querySelector('#productCountText');
-            if (count) document.getElementById('productCountText').innerHTML = count.innerHTML;
+        // UI Helper Functions
+        const UIHelper = {
+            setLoading(loading) {
+                AppState.isLoading = loading;
+                const icon = document.getElementById('refreshIcon');
+                icon.classList.toggle('fa-spin', loading);
+            },
 
-            // Update page title/count if present
-            const newTitle = div.querySelector('.card-header .me-3');
-            const currentTitle = document.querySelector('.card-header .me-3');
-            if (newTitle && currentTitle) {
-                currentTitle.innerHTML = newTitle.innerHTML;
-            }
-
-            // Update bulk actions after restoring all selections
-            updateBulkActions('main');
-
-            setTimeout(() => initializeTooltips(), 300);
-        }
-
-        function updatePaginationAndCounts(div) {
-            // Update pagination section
-            const newPag = div.querySelector('.mt-4'),
-                currentPag = document.querySelector('.mt-4');
-            
-            if (newPag && currentPag) {
-                // Both exist - update content
-                currentPag.innerHTML = newPag.innerHTML;
-            } else if (newPag && !currentPag) {
-                // New pagination exists but current doesn't - add it after the products card
-                const productsCard = document.querySelector('.card');
-                if (productsCard && productsCard.parentNode) {
-                    const newPagElement = newPag.cloneNode(true);
-                    productsCard.parentNode.insertBefore(newPagElement, productsCard.nextSibling);
+            showGlobalStatus(type, message) {
+                const indicator = document.getElementById('statusIndicator');
+                const statusText = document.getElementById('statusText');
+                
+                if (indicator && statusText) {
+                    indicator.className = `status-indicator ${type}`;
+                    statusText.textContent = message;
+                    indicator.style.display = 'block';
+                    
+                    if (type !== 'error') {
+                        setTimeout(() => indicator.style.display = 'none', 3000);
+                    }
                 }
-            } else if (!newPag && currentPag) {
-                // Current pagination exists but new doesn't - remove it
-                currentPag.remove();
-            }
+            },
 
-            // Update product count in header
-            const count = div.querySelector('#productCountText');
-            if (count) document.getElementById('productCountText').innerHTML = count.innerHTML;
-
-            // Update page title/count if present
-            const newTitle = div.querySelector('.card-header .me-3');
-            const currentTitle = document.querySelector('.card-header .me-3');
-            if (newTitle && currentTitle) {
-                currentTitle.innerHTML = newTitle.innerHTML;
-            }
-        }
-
-        function updateGlobalAutoRefreshStatus(status, text) {
-            const el = document.getElementById('autoRefreshStatus'),
-                textEl = document.getElementById('autoRefreshText');
-            if (el && textEl) el.className = `auto-refresh-indicator ${status}`, textEl.textContent = text, el.style.cursor = 'pointer';
-        }
-
-        function showGlobalStatus(type, message) {
-            const indicator = document.getElementById('statusIndicator'),
-                statusText = document.getElementById('statusText');
-            if (indicator && statusText) {
-                indicator.className = `status-indicator ${type}`;
-                statusText.textContent = message;
-                indicator.style.display = 'block';
-                if (type !== 'error') setTimeout(() => indicator.style.display = 'none', 3000);
-            }
-        }
-
-        // Product actions
-        function viewProduct(id) {
-            if (!id || id <= 0) return showNotification('Invalid product ID.', 'error');
-            disposeAllTooltips();
-            window.location.href = '/products/view/' + id;
-        }
-
-        function editProduct(id) {
-            if (!id || id <= 0) return showNotification('Invalid product ID.', 'error');
-            disposeAllTooltips();
-            window.location.href = '/products/edit/' + id;
-        }
-
-        function deleteProduct(id, name) {
-            if (!id || id <= 0) return showNotification('Invalid product ID.', 'error');
-            if (!name || name.trim() === '') name = 'this product';
-            try {
-                document.getElementById('deleteProductName').textContent = name;
-                document.getElementById('confirmDeleteBtn').href = '/products/delete/' + id;
-                new bootstrap.Modal(document.getElementById('deleteModal')).show();
-            } catch (error) {
-                console.error('Error showing delete modal:', error);
-                showNotification('Error opening delete confirmation. Please try again.', 'error');
-            }
-        }
-
-        // Toast notifications
-        function showNotification(message, type = 'info') {
-            const container = document.querySelector('.toast-container');
-            if (!container) return console.error('Toast container not found');
-
-            const toasts = container.querySelectorAll('.toast');
-            if (toasts.length >= maxToasts) {
-                const oldest = toasts[0],
-                    bsToast = bootstrap.Toast.getInstance(oldest);
-                if (bsToast) bsToast.hide();
-                else oldest.remove();
-            }
-
-            const toastId = 'toast-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-            const config = {
-                'success': {
-                    bgClass: 'bg-success',
-                    icon: 'fas fa-check-circle',
-                    title: 'Success',
-                    delay: 4000
-                },
-                'error': {
-                    bgClass: 'bg-danger',
-                    icon: 'fas fa-exclamation-circle',
-                    title: 'Error',
-                    delay: 6000
-                },
-                'info': {
-                    bgClass: 'bg-info',
-                    icon: 'fas fa-info-circle',
-                    title: 'Information',
-                    delay: 5000
-                },
-                'loading': {
-                    bgClass: 'bg-primary',
-                    icon: 'fas fa-spinner fa-spin',
-                    title: 'Loading',
-                    delay: 0
+            updateAutoRefreshStatus(status, text) {
+                const element = document.getElementById('autoRefreshStatus');
+                const textElement = document.getElementById('autoRefreshText');
+                
+                if (element && textElement) {
+                    element.className = `auto-refresh-indicator ${status}`;
+                    textElement.textContent = text;
+                    element.style.cursor = 'pointer';
                 }
-            } [type] || {
-                bgClass: 'bg-info',
-                icon: 'fas fa-info-circle',
-                title: 'Information',
-                delay: 5000
-            };
+            }
+        };
 
-            const html = `<div class="toast ${config.bgClass}" id="${toastId}" role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="toast-header"><i class="${config.icon} me-2"></i><strong class="me-auto">${config.title}</strong>
-                ${type !== 'loading' ? '<button type="button" class="btn-close" data-bs-dismiss="toast"></button>' : ''}</div>
-                <div class="toast-body">${message}</div></div>`;
+        // Product Table Management
+        const ProductTableManager = {
+            loadInitial() {
+                const container = document.getElementById('productsTableContainer');
+                if (!container || container.innerHTML.trim()) return;
+                // PHP table content will be rendered server-side
+            }
+        };
 
-            container.insertAdjacentHTML('beforeend', html);
-            const toastEl = document.getElementById(toastId),
-                toast = new bootstrap.Toast(toastEl, {
-                    delay: config.delay,
-                    autohide: config.delay > 0
+        // Event Handlers Setup
+        const EventHandlers = {
+            initialize() {
+                this.setupWindowEvents();
+                this.setupKeyboardShortcuts();
+            },
+
+            setupWindowEvents() {
+                window.addEventListener('popstate', this.handlePopState);
+                window.addEventListener('online', () => NotificationService.showNotification('Connection restored.', 'success'));
+                window.addEventListener('offline', () => NotificationService.showNotification('Connection lost. Please check your internet connection.', 'error'));
+                window.addEventListener('beforeunload', () => TooltipManager.disposeAll());
+            },
+
+            setupKeyboardShortcuts() {
+                document.addEventListener('keydown', this.handleKeydown);
+            },
+
+            handlePopState(e) {
+                const searchInput = document.getElementById('searchInput');
+                const param = new URLSearchParams(window.location.search).get('search') || '';
+                searchInput.value = param;
+                AppState.currentSearch = param;
+                SearchManager.performSearch(param);
+            },
+
+            handleKeydown(e) {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                    e.preventDefault();
+                    const searchInput = document.getElementById('searchInput');
+                    if (searchInput) {
+                        searchInput.focus();
+                        searchInput.select();
+                    }
+                }
+                
+                if (e.key === 'Escape') {
+                    const searchInput = document.getElementById('searchInput');
+                    if (searchInput && searchInput === document.activeElement) {
+                        SearchManager.clear();
+                    }
+                }
+            }
+        };
+
+        // Real-time Update Manager
+        const RealTimeUpdater = {
+            start() {
+                UIHelper.updateAutoRefreshStatus('connected', 'Auto-sync ON');
+                RealTimeConfig.autoRefreshInterval = setInterval(() => this.checkForUpdates(), RealTimeConfig.updateCheckInterval);
+            },
+
+            stop() {
+                if (RealTimeConfig.autoRefreshInterval) {
+                    clearInterval(RealTimeConfig.autoRefreshInterval);
+                    RealTimeConfig.autoRefreshInterval = null;
+                }
+                UIHelper.updateAutoRefreshStatus('error', 'Reconnecting...');
+                UIHelper.showGlobalStatus('error', 'Reconnecting to server');
+            },
+
+            checkForUpdates() {
+                if (AppState.isUserInteracting) return;
+                
+                const searchValue = document.getElementById('searchInput')?.value?.trim() || '';
+                const urlParams = new URLSearchParams(window.location.search);
+                const currentPageParam = urlParams.get('page') || '1';
+
+                const url = this.buildUpdateCheckURL(searchValue, currentPageParam);
+
+                fetch(url.toString(), {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                        'X-Check-Updates': 'true',
+                        'X-Last-Update': RealTimeConfig.lastUpdateTime.toString()
+                    }
+                })
+                .then(response => response.ok ? response.text() : Promise.reject('Network error'))
+                .then(html => this.handleUpdateResponse(html))
+                .catch(error => this.handleUpdateError(error));
+            },
+
+            buildUpdateCheckURL(searchValue, currentPageParam) {
+                const url = new URL(window.location.origin + '/');
+                if (searchValue.length > 0) url.searchParams.set('search', searchValue);
+                if (currentPageParam !== '1') url.searchParams.set('page', currentPageParam);
+                return url;
+            },
+
+            handleUpdateResponse(html) {
+                const temp = document.createElement('div');
+                temp.innerHTML = html;
+                const hasChanges = this.detectChanges(temp);
+                
+                if (hasChanges && !AppState.isUserInteracting) {
+                    this.updateProductsTable(temp);
+                    RealTimeConfig.lastUpdateTime = new Date().getTime();
+                    RealTimeConfig.connectionRetryCount = 0;
+                    UIHelper.updateAutoRefreshStatus('connected', 'Auto-sync ON');
+                } else {
+                    UIHelper.updateAutoRefreshStatus('connected', 'Auto-sync ON');
+                    this.updatePaginationAndCounts(temp);
+                }
+            },
+
+            handleUpdateError(error) {
+                console.error('Auto-refresh error:', error);
+                RealTimeConfig.connectionRetryCount++;
+                
+                if (RealTimeConfig.connectionRetryCount >= RealTimeConfig.maxRetryAttempts) {
+                    this.stop();
+                    UIHelper.showGlobalStatus('error', 'Connection lost - Retrying in 30 seconds');
+                    setTimeout(() => {
+                        RealTimeConfig.connectionRetryCount = 0;
+                        this.start();
+                    }, 30000);
+                } else {
+                    UIHelper.updateAutoRefreshStatus('error', `Retry ${RealTimeConfig.connectionRetryCount}/${RealTimeConfig.maxRetryAttempts}`);
+                }
+            },
+
+            detectChanges(tempDiv) {
+                return this.hasTableChanges(tempDiv) || this.hasCountChanges(tempDiv) || this.hasPaginationChanges(tempDiv);
+            },
+
+            hasTableChanges(tempDiv) {
+                const newContent = tempDiv.querySelector('#productsTableContainer');
+                const currentContent = document.querySelector('#productsTableContainer');
+                
+                if (!newContent || !currentContent) {
+                    return !currentContent;
+                }
+                
+                return currentContent.innerHTML.replace(/\s+/g, ' ').trim() !== newContent.innerHTML.replace(/\s+/g, ' ').trim();
+            },
+
+            hasCountChanges(tempDiv) {
+                const newCount = tempDiv.querySelector('#productCountText');
+                const currentCount = document.querySelector('#productCountText');
+                
+                if (newCount && currentCount) {
+                    return currentCount.innerHTML.trim() !== newCount.innerHTML.trim();
+                }
+                return false;
+            },
+
+            hasPaginationChanges(tempDiv) {
+                const newPagination = tempDiv.querySelector('.mt-4');
+                const currentPagination = document.querySelector('.mt-4');
+                
+                if (newPagination && currentPagination) {
+                    return currentPagination.innerHTML.replace(/\s+/g, ' ').trim() !== newPagination.innerHTML.replace(/\s+/g, ' ').trim();
+                }
+                return !!(newPagination || currentPagination);
+            },
+
+            updateProductsTable(tempDiv) {
+                const selectedIds = SelectionManager.getSelectedIds('main');
+                const selectAllState = SelectionManager.getSelectAllState('main');
+
+                this.updateTableContent(tempDiv);
+                this.updatePaginationAndCounts(tempDiv);
+                
+                SelectionManager.restoreSelections(selectedIds, selectAllState, 'main');
+                SelectionManager.updateBulkActions('main');
+
+                setTimeout(() => TooltipManager.initialize(), 300);
+            },
+
+            updateTableContent(tempDiv) {
+                const newContent = tempDiv.querySelector('#productsTableContainer');
+                const container = document.getElementById('productsTableContainer');
+                
+                if (!newContent || !container) return;
+
+                const currentHTML = container.innerHTML.replace(/\s+/g, ' ').trim();
+                const newHTML = newContent.innerHTML.replace(/\s+/g, ' ').trim();
+                
+                if (currentHTML !== newHTML) {
+                    TooltipManager.hideAllTooltips();
+                    container.innerHTML = newContent.innerHTML;
+                    this.animateUpdatedRows();
+                }
+            },
+
+            animateUpdatedRows() {
+                const container = document.getElementById('productsTableContainer');
+                container.querySelectorAll('tbody tr').forEach(row => {
+                    row.classList.add('product-row-updated');
+                    setTimeout(() => row.classList.remove('product-row-updated'), 2000);
                 });
+            },
 
-            toastEl.addEventListener('hidden.bs.toast', function() {
-                toastEl.remove();
-                if (loadingToastId === toastId) loadingToastId = null;
-            });
+            updatePaginationAndCounts(tempDiv) {
+                this.updatePagination(tempDiv);
+                this.updateProductCount(tempDiv);
+                this.updatePageTitle(tempDiv);
+            },
 
-            toast.show();
-            toastEl.style.animation = 'slideInBottom 0.3s ease-out';
-            if (type === 'loading') loadingToastId = toastId;
-            return {
-                toast,
-                toastId
-            };
-        }
-
-        function showSuccessToast(message) {
-            showNotification(message, 'success');
-        }
-
-        function showErrorToast(message) {
-            showNotification(message, 'error');
-        }
-
-        function showInfoToast(message) {
-            showNotification(message, 'info');
-        }
-
-        function showLoadingToast(message) {
-            hideLoadingToast();
-            return showNotification(message, 'loading');
-        }
-
-        function hideLoadingToast() {
-            if (loadingToastId) {
-                const toast = document.getElementById(loadingToastId);
-                if (toast) {
-                    const bs = bootstrap.Toast.getInstance(toast);
-                    if (bs) bs.hide();
+            updatePagination(tempDiv) {
+                const newPag = tempDiv.querySelector('.mt-4');
+                const currentPag = document.querySelector('.mt-4');
+                
+                if (newPag && currentPag) {
+                    currentPag.innerHTML = newPag.innerHTML;
+                } else if (newPag && !currentPag) {
+                    const productsCard = document.querySelector('.card');
+                    if (productsCard && productsCard.parentNode) {
+                        const newPagElement = newPag.cloneNode(true);
+                        productsCard.parentNode.insertBefore(newPagElement, productsCard.nextSibling);
+                    }
+                } else if (!newPag && currentPag) {
+                    currentPag.remove();
                 }
-                loadingToastId = null;
+            },
+
+            updateProductCount(tempDiv) {
+                const count = tempDiv.querySelector('#productCountText');
+                if (count) {
+                    document.getElementById('productCountText').innerHTML = count.innerHTML;
+                }
+            },
+
+            updatePageTitle(tempDiv) {
+                const newTitle = tempDiv.querySelector('.card-header .me-3');
+                const currentTitle = document.querySelector('.card-header .me-3');
+                if (newTitle && currentTitle) {
+                    currentTitle.innerHTML = newTitle.innerHTML;
+                }
             }
-        }
+        };
 
-        function clearAllToasts() {
-            document.querySelectorAll('.toast').forEach(t => {
-                const bs = bootstrap.Toast.getInstance(t);
-                if (bs) bs.hide();
-            });
-        }
+        // Tooltip Management
+        const TooltipManager = {
+            initialize() {
+                if (AppState.tooltipInitTimeout) {
+                    clearTimeout(AppState.tooltipInitTimeout);
+                }
+                
+                AppState.tooltipInitTimeout = setTimeout(() => {
+                    this.cleanupExistingTooltips();
+                    this.initializeNewTooltips();
+                }, 150);
+            },
 
-        // Utility functions
-        function clearSearch() {
-            const search = document.getElementById('searchInput');
-            if (search) {
-                search.value = '';
-                if (typeof clearSearchError === 'function') clearSearchError();
-                if (typeof performSearch === 'function') performSearch('');
-            }
-        }
-
-        function refreshProducts() {
-            const search = document.getElementById('searchInput');
-            if (search && typeof performSearch === 'function') {
-                showLoadingToast('Refreshing products...');
-                performSearch(search.value.trim());
-            }
-        }
-
-        function initializeAlerts() {
-            console.log('Alert system initialized - using toast notifications');
-        }
-
-        // Tooltip management
-        function initializeTooltips() {
-            if (tooltipInitTimeout) clearTimeout(tooltipInitTimeout);
-            tooltipInitTimeout = setTimeout(() => {
+            cleanupExistingTooltips() {
                 try {
                     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
                         if (el && el.isConnected) {
                             const existing = bootstrap.Tooltip.getInstance(el);
-                            if (existing) try {
-                                existing.hide();
-                                existing.dispose();
-                            } catch (e) {
-                                console.warn('Tooltip dispose error:', e);
+                            if (existing) {
+                                this.safeDisposeTooltip(existing);
                             }
                         }
                     });
 
                     document.querySelectorAll('.tooltip').forEach(el => {
-                        if (el && el.parentNode) try {
-                            el.parentNode.removeChild(el);
-                        } catch (e) {
-                            console.warn('Tooltip removal error:', e);
+                        this.safeRemoveElement(el);
+                    });
+                } catch (error) {
+                    console.error('Tooltip cleanup error:', error);
+                }
+            },
+
+            initializeNewTooltips() {
+                document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+                    if (el && el.isConnected && !bootstrap.Tooltip.getInstance(el)) {
+                        this.createTooltip(el);
+                    }
+                });
+            },
+
+            createTooltip(element) {
+                try {
+                    const tooltip = new bootstrap.Tooltip(element, {
+                        trigger: 'hover focus',
+                        delay: { show: 500, hide: 200 },
+                        placement: 'top',
+                        boundary: 'viewport',
+                        animation: false,
+                        sanitize: false,
+                        template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>',
+                        allowList: {
+                            'div': ['class', 'role'],
+                            'span': [],
+                            'i': ['class']
                         }
                     });
 
-                    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
-                        if (el && el.isConnected && !bootstrap.Tooltip.getInstance(el)) {
-                            try {
-                                const tooltip = new bootstrap.Tooltip(el, {
-                                    trigger: 'hover focus',
-                                    delay: {
-                                        show: 500,
-                                        hide: 200
-                                    },
-                                    placement: 'top',
-                                    boundary: 'viewport',
-                                    animation: false,
-                                    sanitize: false,
-                                    template: '<div class="tooltip" role="tooltip"><div class="tooltip-arrow"></div><div class="tooltip-inner"></div></div>',
-                                    allowList: {
-                                        'div': ['class', 'role'],
-                                        'span': [],
-                                        'i': ['class']
-                                    }
-                                });
+                    this.attachTooltipEvents(element);
+                } catch (e) {
+                    console.warn('Tooltip creation failed:', e);
+                }
+            },
 
-                                el.addEventListener('mouseenter', () => isUserInteracting = true);
-                                el.addEventListener('mouseleave', () => setTimeout(() => isUserInteracting = false, 1000));
-                                el.addEventListener('focus', () => isUserInteracting = true);
-                                el.addEventListener('blur', () => setTimeout(() => isUserInteracting = false, 500));
-                            } catch (e) {
-                                console.warn('Tooltip creation failed:', e);
+            attachTooltipEvents(element) {
+                element.addEventListener('mouseenter', () => AppState.isUserInteracting = true);
+                element.addEventListener('mouseleave', () => setTimeout(() => AppState.isUserInteracting = false, 1000));
+                element.addEventListener('focus', () => AppState.isUserInteracting = true);
+                element.addEventListener('blur', () => setTimeout(() => AppState.isUserInteracting = false, 500));
+            },
+
+            safeDisposeTooltip(tooltip) {
+                try {
+                    tooltip.hide();
+                    tooltip.dispose();
+                } catch (e) {
+                    console.warn('Tooltip dispose error:', e);
+                }
+            },
+
+            safeRemoveElement(element) {
+                if (element && element.parentNode) {
+                    try {
+                        element.parentNode.removeChild(element);
+                    } catch (e) {
+                        console.warn('Tooltip removal error:', e);
+                    }
+                }
+            },
+
+            hideAllTooltips() {
+                document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+                    const tooltip = bootstrap.Tooltip.getInstance(el);
+                    if (tooltip) {
+                        try {
+                            tooltip.hide();
+                        } catch (e) {
+                            console.warn('Hide tooltip error:', e);
+                        }
+                    }
+                });
+            },
+
+            disposeAll() {
+                try {
+                    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+                        if (el) {
+                            const tooltip = bootstrap.Tooltip.getInstance(el);
+                            if (tooltip) {
+                                this.safeDisposeTooltip(tooltip);
                             }
                         }
                     });
+
+                    document.querySelectorAll('.tooltip, body > .tooltip, .tooltip-inner, .tooltip-arrow').forEach(el => {
+                        if (el && (!el.closest('[data-bs-toggle="tooltip"]') || el.matches('.tooltip, body > .tooltip'))) {
+                            this.safeRemoveElement(el);
+                        }
+                    });
                 } catch (error) {
-                    console.error('Tooltip init error:', error);
+                    console.error('Dispose all tooltips error:', error);
                 }
-            }, 150);
-        }
-
-        function disposeAllTooltips() {
-            try {
-                document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
-                    if (el) {
-                        const tooltip = bootstrap.Tooltip.getInstance(el);
-                        if (tooltip) try {
-                            tooltip.hide();
-                            tooltip.dispose();
-                        } catch (e) {
-                            console.warn('Dispose error:', e);
-                        }
-                    }
-                });
-
-                document.querySelectorAll('.tooltip, body > .tooltip, .tooltip-inner, .tooltip-arrow').forEach(el => {
-                    if (el && (!el.closest('[data-bs-toggle="tooltip"]') || el.matches('.tooltip, body > .tooltip'))) {
-                        try {
-                            el.remove();
-                        } catch (e) {
-                            console.warn('Element removal error:', e);
-                        }
-                    }
-                });
-            } catch (error) {
-                console.error('Dispose all tooltips error:', error);
             }
-        }
+        };
 
-        // Trash modal functionality
-        function openTrashModal() {
-            const modal = new bootstrap.Modal(document.getElementById('trashModal'));
-            document.getElementById('trashModal').addEventListener('hidden.bs.modal', () => {
-                disposeAllTooltips();
-                // Hide trash bulk actions and nested panels when modal is closed
-                const trashBulkActions = document.getElementById('trashBulkActions');
-                if (trashBulkActions) trashBulkActions.classList.remove('show');
+        // Product Action Handlers
+        const ProductActions = {
+            view(id) {
+                if (!this.validateId(id)) return;
+                TooltipManager.disposeAll();
+                window.location.href = '/products/view/' + id;
+            },
+
+            edit(id) {
+                if (!this.validateId(id)) return;
+                TooltipManager.disposeAll();
+                window.location.href = '/products/edit/' + id;
+            },
+
+            delete(id, name) {
+                if (!this.validateId(id)) return;
                 
-                // Hide any open nested panels
+                const productName = name && name.trim() !== '' ? name : 'this product';
+                
+                try {
+                    document.getElementById('deleteProductName').textContent = productName;
+                    document.getElementById('confirmDeleteBtn').href = '/products/delete/' + id;
+                    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+                } catch (error) {
+                    console.error('Error showing delete modal:', error);
+                    NotificationService.showError('Error opening delete confirmation. Please try again.');
+                }
+            },
+
+            validateId(id) {
+                if (!id || id <= 0) {
+                    NotificationService.showError('Invalid product ID.');
+                    return false;
+                }
+                return true;
+            }
+        };
+
+        // Selection Management
+        const SelectionManager = {
+            toggleSelectAll(context = 'main') {
+                const selectAllId = this.getSelectAllId(context);
+                const checkboxClass = this.getCheckboxClass(context);
+                const selectAll = document.getElementById(selectAllId);
+                const checkboxes = document.querySelectorAll(`.${checkboxClass}`);
+                
+                checkboxes.forEach(cb => {
+                    cb.checked = selectAll.checked;
+                    const row = cb.closest('tr');
+                    if (row) {
+                        row.classList.toggle('selected', cb.checked);
+                    }
+                });
+                
+                this.updateBulkActions(context);
+            },
+
+            updateBulkActions(context = 'main') {
+                const config = this.getContextConfig(context);
+                const checkboxes = document.querySelectorAll(`.${config.checkboxClass}`);
+                const selectedCheckboxes = document.querySelectorAll(`.${config.checkboxClass}:checked`);
+                const bulkActions = document.getElementById(config.actionsId);
+                const selectedCount = document.getElementById(config.selectedCountId);
+                const selectAll = document.getElementById(config.selectAllId);
+                
+                if (selectedCount) {
+                    selectedCount.textContent = selectedCheckboxes.length;
+                }
+                
+                this.updateSelectAllState(selectAll, checkboxes, selectedCheckboxes);
+                this.toggleBulkActions(bulkActions, selectedCheckboxes.length > 0);
+                this.updateRowStyling(checkboxes);
+                
+                // Show/hide export selected button for main context
+                if (context === 'main') {
+                    const exportSelectedBtn = document.getElementById('exportSelectedBtn');
+                    if (exportSelectedBtn) {
+                        if (selectedCheckboxes.length > 0) {
+                            exportSelectedBtn.style.display = 'inline-block';
+                            exportSelectedBtn.style.visibility = 'visible';
+                        } else {
+                            exportSelectedBtn.style.display = 'none';
+                            exportSelectedBtn.style.visibility = 'hidden';
+                        }
+                    }
+                }
+            },
+
+            updateSelectAllState(selectAll, checkboxes, selectedCheckboxes) {
+                if (selectAll) {
+                    selectAll.indeterminate = selectedCheckboxes.length > 0 && selectedCheckboxes.length < checkboxes.length;
+                    selectAll.checked = selectedCheckboxes.length === checkboxes.length && checkboxes.length > 0;
+                }
+            },
+
+            toggleBulkActions(bulkActions, show) {
+                if (bulkActions) {
+                    bulkActions.classList.toggle('show', show);
+                }
+            },
+
+            updateRowStyling(checkboxes) {
+                checkboxes.forEach(cb => {
+                    const row = cb.closest('tr');
+                    if (row) {
+                        row.classList.toggle('selected', cb.checked);
+                    }
+                });
+            },
+
+            clearAllSelections(context = 'main') {
+                const config = this.getContextConfig(context);
+                
+                document.querySelectorAll(`.${config.checkboxClass}`).forEach(cb => {
+                    cb.checked = false;
+                    const row = cb.closest('tr');
+                    if (row) row.classList.remove('selected');
+                });
+                
+                const selectAll = document.getElementById(config.selectAllId);
+                if (selectAll) {
+                    selectAll.checked = false;
+                    selectAll.indeterminate = false;
+                }
+                
+                // Hide export selected button for main context
+                if (context === 'main') {
+                    const exportSelectedBtn = document.getElementById('exportSelectedBtn');
+                    if (exportSelectedBtn) {
+                        exportSelectedBtn.style.display = 'none';
+                    }
+                }
+                
+                this.updateBulkActions(context);
+            },
+
+            getSelectedIds(context = 'main') {
+                const checkboxClass = this.getCheckboxClass(context);
+                return Array.from(document.querySelectorAll(`.${checkboxClass}:checked`))
+                    .map(cb => cb.value);
+            },
+
+            getSelectedProductNames(context = 'main') {
+                const checkboxClass = this.getCheckboxClass(context);
+                const selectedCheckboxes = document.querySelectorAll(`.${checkboxClass}:checked`);
+                const names = [];
+                
+                selectedCheckboxes.forEach(cb => {
+                    const row = cb.closest('tr');
+                    if (row) {
+                        const nameCell = context === 'main' ? row.cells[2] : row.cells[1];
+                        if (nameCell) {
+                            const nameText = nameCell.textContent.trim();
+                            names.push(nameText);
+                        }
+                    }
+                });
+                
+                return names;
+            },
+
+            getSelectAllState(context = 'main') {
+                const selectAllId = this.getSelectAllId(context);
+                const selectAll = document.getElementById(selectAllId);
+                
+                return selectAll ? {
+                    checked: selectAll.checked,
+                    indeterminate: selectAll.indeterminate
+                } : null;
+            },
+
+            restoreSelections(selectedIds, selectAllState, context = 'main') {
+                selectedIds.forEach(id => {
+                    const checkbox = document.querySelector(`.${this.getCheckboxClass(context)}[value="${id}"]`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                        const row = checkbox.closest('tr');
+                        if (row) row.classList.add('selected');
+                    }
+                });
+
+                if (selectAllState) {
+                    const selectAll = document.getElementById(this.getSelectAllId(context));
+                    if (selectAll) {
+                        selectAll.checked = selectAllState.checked;
+                        selectAll.indeterminate = selectAllState.indeterminate;
+                    }
+                }
+            },
+
+            getContextConfig(context) {
+                const configs = {
+                    'main': {
+                        checkboxClass: 'product-checkbox',
+                        actionsId: 'floatingBulkActions',
+                        selectedCountId: 'selectedCount',
+                        selectAllId: 'selectAllMain'
+                    },
+                    'trash': {
+                        checkboxClass: 'trash-checkbox',
+                        actionsId: 'trashBulkActions',
+                        selectedCountId: 'selectedCountTrash',
+                        selectAllId: 'selectAllTrash'
+                    }
+                };
+                
+                return configs[context] || configs['main'];
+            },
+
+            getCheckboxClass(context) {
+                return context === 'main' ? 'product-checkbox' : 'trash-checkbox';
+            },
+
+            getSelectAllId(context) {
+                return context === 'main' ? 'selectAllMain' : 'selectAllTrash';
+            }
+        };
+
+        // Utility Functions
+        const UtilityFunctions = {
+            escapeHtml(text) {
+                const map = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                };
+                return text.replace(/[&<>"']/g, m => map[m]);
+            },
+
+            refreshProducts() {
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) {
+                    NotificationService.showLoading('Refreshing products...');
+                    SearchManager.performSearch(searchInput.value.trim());
+                }
+            },
+
+            initializeAlerts() {
+                console.log('Alert system initialized - using toast notifications');
+            }
+        };
+
+        // Initialize Event Handlers
+        EventHandlers.initialize();
+
+        // Trash Management
+        const TrashManager = {
+            openModal() {
+                const modal = new bootstrap.Modal(document.getElementById('trashModal'));
+                
+                document.getElementById('trashModal').addEventListener('hidden.bs.modal', () => {
+                    this.handleModalClose();
+                }, { once: true });
+                
+                modal.show();
+                this.loadData();
+            },
+
+            handleModalClose() {
+                TooltipManager.disposeAll();
+                this.hideBulkActions();
+                this.hideNestedPanels();
+                SelectionManager.clearAllSelections('trash');
+            },
+
+            hideBulkActions() {
+                const trashBulkActions = document.getElementById('trashBulkActions');
+                if (trashBulkActions) {
+                    trashBulkActions.classList.remove('show');
+                }
+            },
+
+            hideNestedPanels() {
                 document.getElementById('nestedBulkRestorePanel').classList.remove('show');
                 document.getElementById('nestedBulkPermanentDeletePanel').classList.remove('show');
+            },
+
+            loadData() {
+                const body = document.getElementById('trashModalBody');
+                TooltipManager.disposeAll();
+                NotificationService.showLoading('Loading deleted products...');
                 
-                clearAllSelections('trash');
-            }, {
-                once: true
-            });
-            modal.show();
-            loadTrashData();
-        }
+                body.innerHTML = this.getLoadingHTML();
 
-        function loadTrashData() {
-            const body = document.getElementById('trashModalBody');
-            disposeAllTooltips();
-            showLoadingToast('Loading deleted products...');
-            body.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary"><span class="visually-hidden">Loading...</span></div><p class="mt-3 text-muted">Loading trash...</p></div>';
-
-            fetch('/trash', {
+                fetch('/trash', {
                     method: 'GET',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
@@ -1682,30 +2172,137 @@
                     }
                 })
                 .then(response => response.ok ? response.json() : Promise.reject('Network error'))
-                .then(data => {
-                    hideLoadingToast();
-                    displayTrashData(data);
-                })
-                .catch(error => {
-                    hideLoadingToast();
-                    console.error('Trash load error:', error);
-                    showErrorToast('Failed to load trash data. Please try again.');
-                    body.innerHTML = '<div class="text-center py-5"><i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i><h4 class="text-danger">Error Loading Trash</h4><p class="text-muted">Unable to load deleted products.</p><button class="btn btn-outline-danger" onclick="loadTrashData()"><i class="fas fa-redo me-2"></i>Try Again</button></div>';
-                });
-        }
+                .then(data => this.handleLoadSuccess(data))
+                .catch(error => this.handleLoadError(error, body));
+            },
 
-        function displayTrashData(data) {
-            const body = document.getElementById('trashModalBody');
-            if (!data.products || !data.products.length) {
-                body.innerHTML = '<div class="text-center trash-empty"><i class="fas fa-trash fa-3x text-muted mb-3"></i><h4>Trash is Empty</h4><p class="text-muted">No deleted products found.</p></div>';
-                return;
-            }
+            getLoadingHTML() {
+                return `<div class="text-center py-5">
+                    <div class="spinner-border text-primary">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3 text-muted">Loading trash...</p>
+                </div>`;
+            },
 
-            let html = '<div class="table-responsive"><table class="table table-striped mb-0 trash-table"><thead class="table-dark"><tr><th style="width:40px"><input type="checkbox" class="form-check-input select-checkbox" id="selectAllTrash" onchange="toggleSelectAll(\'trash\')"></th><th><i class="fas fa-tag me-1"></i>Product Name</th><th><i class="fas fa-align-left me-1"></i>Description</th><th><i class="fas fa-peso-sign me-1"></i>Price</th><th><i class="fas fa-calendar me-1"></i>Deleted At</th><th><i class="fas fa-cogs me-1"></i>Actions</th></tr></thead><tbody>';
+            handleLoadSuccess(data) {
+                NotificationService.hideLoading();
+                this.displayData(data);
+            },
 
-            data.products.forEach(p => {
-                const desc = p.description ? (p.description.length > 50 ? p.description.substring(0, 50) + '...' : p.description) : '<em class="text-muted">No description</em>';
-                const date = new Date(p.updated_at);
+            handleLoadError(error, body) {
+                NotificationService.hideLoading();
+                console.error('Trash load error:', error);
+                NotificationService.showError('Failed to load trash data. Please try again.');
+                
+                body.innerHTML = this.getErrorHTML();
+            },
+
+            getErrorHTML() {
+                return `<div class="text-center py-5">
+                    <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                    <h4 class="text-danger">Error Loading Trash</h4>
+                    <p class="text-muted">Unable to load deleted products.</p>
+                    <button class="btn btn-outline-danger" onclick="TrashManager.loadData()">
+                        <i class="fas fa-redo me-2"></i>Try Again
+                    </button>
+                </div>`;
+            },
+
+            displayData(data) {
+                const body = document.getElementById('trashModalBody');
+                
+                if (!data.products || !data.products.length) {
+                    body.innerHTML = this.getEmptyHTML();
+                    return;
+                }
+
+                body.innerHTML = this.buildProductsHTML(data);
+                SelectionManager.updateBulkActions('trash');
+                setTimeout(() => TooltipManager.initialize(), 100);
+            },
+
+            getEmptyHTML() {
+                return `<div class="text-center trash-empty">
+                    <i class="fas fa-trash fa-3x text-muted mb-3"></i>
+                    <h4>Trash is Empty</h4>
+                    <p class="text-muted">No deleted products found.</p>
+                </div>`;
+            },
+
+            buildProductsHTML(data) {
+                let html = this.getTableHeader();
+                html += this.buildTableRows(data.products);
+                html += this.getTableFooter(data);
+                return html;
+            },
+
+            getTableHeader() {
+                return `<div class="table-responsive">
+                    <table class="table table-striped mb-0 trash-table">
+                        <thead class="table-dark">
+                            <tr>
+                                <th style="width:40px">
+                                    <input type="checkbox" class="form-check-input select-checkbox" 
+                                           id="selectAllTrash" onchange="SelectionManager.toggleSelectAll('trash')">
+                                </th>
+                                <th><i class="fas fa-tag me-1"></i>Product Name</th>
+                                <th><i class="fas fa-align-left me-1"></i>Description</th>
+                                <th><i class="fas fa-peso-sign me-1"></i>Price</th>
+                                <th><i class="fas fa-calendar me-1"></i>Deleted At</th>
+                                <th><i class="fas fa-cogs me-1"></i>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+            },
+
+            buildTableRows(products) {
+                return products.map(product => this.buildProductRow(product)).join('');
+            },
+
+            buildProductRow(product) {
+                const description = this.formatDescription(product.description);
+                const { dateStr, timeStr } = this.formatDate(product.updated_at);
+                const price = this.formatPrice(product.price);
+                const escapedName = UtilityFunctions.escapeHtml(product.product_name);
+
+                return `<tr class="deleted-product" id="trash-row-${product.id}">
+                    <td>
+                        <input type="checkbox" class="form-check-input select-checkbox trash-checkbox" 
+                               value="${product.id}" onchange="SelectionManager.updateBulkActions('trash')">
+                    </td>
+                    <td><span class="fw-semibold text-muted">${escapedName}</span></td>
+                    <td>${description}</td>
+                    <td><strong class="text-muted">₱${price}</strong></td>
+                    <td><small>${dateStr}</small><br><small class="text-muted">${timeStr}</small></td>
+                    <td>
+                        <div class="btn-group">
+                            <button class="btn btn-outline-success btn-sm" 
+                                    onclick="TrashManager.restoreProduct(${product.id}, '${escapedName}')" 
+                                    title="Restore Product" data-bs-toggle="tooltip">
+                                <i class="fas fa-undo"></i>
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" 
+                                    onclick="TrashManager.permanentDeleteProduct(${product.id}, '${escapedName}')" 
+                                    title="Permanently Delete" data-bs-toggle="tooltip">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+            },
+
+            formatDescription(description) {
+                if (!description) {
+                    return '<em class="text-muted">No description</em>';
+                }
+                return description.length > 50 
+                    ? description.substring(0, 50) + '...' 
+                    : description;
+            },
+
+            formatDate(dateString) {
+                const date = new Date(dateString);
                 const dateStr = date.toLocaleDateString('en-US', {
                     month: 'short',
                     day: 'numeric',
@@ -1716,38 +2313,58 @@
                     minute: '2-digit',
                     hour12: true
                 });
+                return { dateStr, timeStr };
+            },
 
-                html += `<tr class="deleted-product" id="trash-row-${p.id}"><td><input type="checkbox" class="form-check-input select-checkbox trash-checkbox" value="${p.id}" onchange="updateBulkActions('trash')"></td><td><span class="fw-semibold text-muted">${escapeHtml(p.product_name)}</span></td><td>${desc}</td><td><strong class="text-muted">₱${parseFloat(p.price).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td><td><small>${dateStr}</small><br><small class="text-muted">${timeStr}</small></td><td><div class="btn-group"><button class="btn btn-outline-success btn-sm" onclick="restoreProduct(${p.id}, '${escapeHtml(p.product_name)}')" title="Restore Product" data-bs-toggle="tooltip"><i class="fas fa-undo"></i></button><button class="btn btn-outline-danger btn-sm" onclick="permanentDeleteProduct(${p.id}, '${escapeHtml(p.product_name)}')" title="Permanently Delete" data-bs-toggle="tooltip"><i class="fas fa-times"></i></button></div></td></tr>`;
-            });
+            formatPrice(price) {
+                return parseFloat(price).toLocaleString('en-US', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            },
 
-            html += '</tbody></table></div><div class="p-3 bg-light border-top"><small class="text-muted"><i class="fas fa-info-circle me-1"></i>Showing ' + data.products.length + ' deleted product(s)' + (data.total_products ? ' of ' + data.total_products + ' total' : '') + '</small></div>';
-            body.innerHTML = html;
-            
-            // Initialize bulk actions for trash
-            updateBulkActions('trash');
-            setTimeout(() => initializeTooltips(), 100);
-        }
+            getTableFooter(data) {
+                const totalText = data.total_products ? ` of ${data.total_products} total` : '';
+                return `</tbody>
+                    </table>
+                </div>
+                <div class="p-3 bg-light border-top">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Showing ${data.products.length} deleted product(s)${totalText}
+                    </small>
+                </div>`;
+            },
 
-        function refreshTrash() {
-            showLoadingToast('Refreshing trash data...');
-            loadTrashData();
-        }
+            refresh() {
+                NotificationService.showLoading('Refreshing trash data...');
+                this.loadData();
+            },
 
-        function restoreProduct(id, name) {
-            if (!id || id <= 0) return showNotification('Invalid product ID.', 'error');
-            currentRestoreId = id;
-            document.getElementById('restoreProductName').textContent = name || 'this product';
-            new bootstrap.Modal(document.getElementById('restoreModal')).show();
-        }
+            restoreProduct(id, name) {
+                if (!ProductActions.validateId(id)) return;
+                
+                AppState.currentRestoreId = id;
+                document.getElementById('restoreProductName').textContent = name || 'this product';
+                new bootstrap.Modal(document.getElementById('restoreModal')).show();
+            },
 
-        function confirmRestore() {
-            if (!currentRestoreId) return;
-            const btn = event.target,
-                originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Restoring...';
-            btn.disabled = true;
+            permanentDeleteProduct(id, name) {
+                if (!ProductActions.validateId(id)) return;
+                
+                AppState.currentPermanentDeleteId = id;
+                document.getElementById('permanentDeleteProductName').textContent = name || 'this product';
+                new bootstrap.Modal(document.getElementById('permanentDeleteModal')).show();
+            },
 
-            fetch(`/products/restore/${currentRestoreId}`, {
+            confirmRestore() {
+                if (!AppState.currentRestoreId) return;
+                
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                this.setButtonLoading(btn, 'Restoring...');
+
+                fetch(`/products/restore/${AppState.currentRestoreId}`, {
                     method: 'GET',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
@@ -1755,41 +2372,19 @@
                     }
                 })
                 .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showNotification(data.message, 'success');
-                        const row = document.getElementById(`trash-row-${currentRestoreId}`);
-                        if (row) row.style.transition = 'opacity 0.3s', row.style.opacity = '0', setTimeout(() => row.remove(), 300);
-                        if (typeof refreshProducts === 'function') setTimeout(refreshProducts, 500);
-                    } else showNotification(data.message, 'error');
-                })
-                .catch(error => {
-                    console.error('Restore error:', error);
-                    showNotification('Error restoring product. Please try again.', 'error');
-                })
-                .finally(() => {
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                    currentRestoreId = null;
-                    bootstrap.Modal.getInstance(document.getElementById('restoreModal')).hide();
-                });
-        }
+                .then(data => this.handleRestoreResponse(data))
+                .catch(error => this.handleRestoreError(error))
+                .finally(() => this.resetButton(btn, originalText));
+            },
 
-        function permanentDeleteProduct(id, name) {
-            if (!id || id <= 0) return showNotification('Invalid product ID.', 'error');
-            currentPermanentDeleteId = id;
-            document.getElementById('permanentDeleteProductName').textContent = name || 'this product';
-            new bootstrap.Modal(document.getElementById('permanentDeleteModal')).show();
-        }
+            confirmPermanentDelete() {
+                if (!AppState.currentPermanentDeleteId) return;
+                
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                this.setButtonLoading(btn, 'Deleting...');
 
-        function confirmPermanentDelete() {
-            if (!currentPermanentDeleteId) return;
-            const btn = event.target,
-                originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Deleting...';
-            btn.disabled = true;
-
-            fetch(`/products/permanent-delete/${currentPermanentDeleteId}`, {
+                fetch(`/products/permanent-delete/${AppState.currentPermanentDeleteId}`, {
                     method: 'GET',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
@@ -1797,465 +2392,634 @@
                     }
                 })
                 .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showNotification(data.message, 'success');
-                        const row = document.getElementById(`trash-row-${currentPermanentDeleteId}`);
-                        if (row) row.style.transition = 'opacity 0.3s', row.style.opacity = '0', setTimeout(() => row.remove(), 300);
-                    } else showNotification(data.message, 'error');
-                })
-                .catch(error => {
-                    console.error('Permanent delete error:', error);
-                    showNotification('Error permanently deleting product. Please try again.', 'error');
-                })
-                .finally(() => {
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                    currentPermanentDeleteId = null;
-                    bootstrap.Modal.getInstance(document.getElementById('permanentDeleteModal')).hide();
+                .then(data => this.handlePermanentDeleteResponse(data))
+                .catch(error => this.handlePermanentDeleteError(error))
+                .finally(() => this.resetButton(btn, originalText));
+            },
+
+            setButtonLoading(btn, text) {
+                btn.innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i>${text}`;
+                btn.disabled = true;
+            },
+
+            resetButton(btn, originalText) {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            },
+
+            handleRestoreResponse(data) {
+                if (data.success) {
+                    NotificationService.showNotification(data.message, 'success');
+                    this.removeProductRow(AppState.currentRestoreId);
+                    setTimeout(() => UtilityFunctions.refreshProducts(), 500);
+                } else {
+                    NotificationService.showNotification(data.message, 'error');
+                }
+                
+                AppState.currentRestoreId = null;
+                bootstrap.Modal.getInstance(document.getElementById('restoreModal')).hide();
+            },
+
+            handleRestoreError(error) {
+                console.error('Restore error:', error);
+                NotificationService.showError('Error restoring product. Please try again.');
+                AppState.currentRestoreId = null;
+                bootstrap.Modal.getInstance(document.getElementById('restoreModal')).hide();
+            },
+
+            handlePermanentDeleteResponse(data) {
+                if (data.success) {
+                    NotificationService.showNotification(data.message, 'success');
+                    this.removeProductRow(AppState.currentPermanentDeleteId);
+                } else {
+                    NotificationService.showNotification(data.message, 'error');
+                }
+                
+                AppState.currentPermanentDeleteId = null;
+                bootstrap.Modal.getInstance(document.getElementById('permanentDeleteModal')).hide();
+            },
+
+            handlePermanentDeleteError(error) {
+                console.error('Permanent delete error:', error);
+                NotificationService.showError('Error permanently deleting product. Please try again.');
+                AppState.currentPermanentDeleteId = null;
+                bootstrap.Modal.getInstance(document.getElementById('permanentDeleteModal')).hide();
+            },
+
+            removeProductRow(productId) {
+                const row = document.getElementById(`trash-row-${productId}`);
+                if (row) {
+                    row.style.transition = 'opacity 0.3s';
+                    row.style.opacity = '0';
+                    setTimeout(() => row.remove(), 300);
+                }
+            }
+        };
+
+        // Bulk Operations Manager
+        const BulkOperations = {
+            // Nested panel functions for trash modal
+            showNestedBulkRestore() {
+                const selectedIds = SelectionManager.getSelectedIds('trash');
+                if (!this.validateSelection(selectedIds, 'restore')) return;
+                
+                const selectedNames = SelectionManager.getSelectedProductNames('trash');
+                this.populateNestedPanel('nestedRestoreCount', 'nestedRestoreList', selectedIds, selectedNames);
+                document.getElementById('nestedBulkRestorePanel').classList.add('show');
+            },
+
+            showNestedBulkPermanentDelete() {
+                const selectedIds = SelectionManager.getSelectedIds('trash');
+                if (!this.validateSelection(selectedIds, 'permanently delete')) return;
+                
+                const selectedNames = SelectionManager.getSelectedProductNames('trash');
+                this.populateNestedPanel('nestedPermanentDeleteCount', 'nestedPermanentDeleteList', selectedIds, selectedNames);
+                document.getElementById('nestedBulkPermanentDeletePanel').classList.add('show');
+            },
+
+            hideNestedPanel(panelId) {
+                document.getElementById(panelId).classList.remove('show');
+            },
+
+            // Modal trigger functions
+            showBulkDeleteModal() {
+                const selectedIds = SelectionManager.getSelectedIds('main');
+                if (!this.validateSelection(selectedIds, 'delete')) return;
+                
+                const selectedNames = SelectionManager.getSelectedProductNames('main');
+                this.populateModal('bulkDeleteCount', 'bulkDeleteList', selectedIds, selectedNames, 'bulkDeleteModal');
+            },
+
+            showBulkRestoreModal() {
+                const selectedIds = SelectionManager.getSelectedIds('trash');
+                if (!this.validateSelection(selectedIds, 'restore')) return;
+                
+                const selectedNames = SelectionManager.getSelectedProductNames('trash');
+                this.populateModal('bulkRestoreCount', 'bulkRestoreList', selectedIds, selectedNames, 'bulkRestoreModal');
+            },
+
+            showBulkPermanentDeleteModal() {
+                const selectedIds = SelectionManager.getSelectedIds('trash');
+                if (!this.validateSelection(selectedIds, 'permanently delete')) return;
+                
+                const selectedNames = SelectionManager.getSelectedProductNames('trash');
+                this.populateModal('bulkPermanentDeleteCount', 'bulkPermanentDeleteList', selectedIds, selectedNames, 'bulkPermanentDeleteModal');
+            },
+
+            // Confirmation functions
+            confirmBulkDelete() {
+                this.executeBulkOperation('main', '/products/bulk-delete', 'Moving to trash...', 'moving', 'delete');
+            },
+
+            confirmBulkRestore() {
+                this.executeBulkOperation('trash', '/products/bulk-restore', 'Restoring...', 'restoring', 'restore', () => {
+                    TrashManager.loadData();
+                    UtilityFunctions.refreshProducts();
                 });
-        }
+            },
 
-        function escapeHtml(text) {
-            const map = {
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#039;'
-            };
-            return text.replace(/[&<>"']/g, m => map[m]);
-        }
+            confirmBulkPermanentDelete() {
+                this.executeBulkOperation('trash', '/products/bulk-permanent-delete', 'Deleting...', 'permanently deleting', 'permanent-delete', () => {
+                    TrashManager.loadData();
+                });
+            },
 
-        // Nested panel confirmation functions
-        function confirmNestedBulkRestore() {
-            const selectedIds = getSelectedIds('trash');
-            if (selectedIds.length === 0) return;
-            
-            const btn = event.target;
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Restoring...';
-            btn.disabled = true;
-            
-            hideNestedPanel('nestedBulkRestorePanel');
-            showLoadingToast(`Restoring ${selectedIds.length} product(s)...`);
-            
-            fetch('/products/bulk-restore', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ ids: selectedIds })
-            })
-            .then(response => response.json())
-            .then(data => {
-                hideLoadingToast();
+            // Nested panel confirmations
+            confirmNestedBulkRestore() {
+                const selectedIds = SelectionManager.getSelectedIds('trash');
+                if (selectedIds.length === 0) return;
+                
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                TrashManager.setButtonLoading(btn, 'Restoring...');
+                
+                this.hideNestedPanel('nestedBulkRestorePanel');
+                NotificationService.showLoading(`Restoring ${selectedIds.length} product(s)...`);
+                
+                this.performBulkRequest('/products/bulk-restore', selectedIds)
+                    .then(data => this.handleBulkSuccess(data, 'restore', () => {
+                        TrashManager.loadData();
+                        UtilityFunctions.refreshProducts();
+                    }))
+                    .catch(error => this.handleBulkError(error, 'restoring'))
+                    .finally(() => TrashManager.resetButton(btn, originalText));
+            },
+
+            confirmNestedBulkPermanentDelete() {
+                const selectedIds = SelectionManager.getSelectedIds('trash');
+                if (selectedIds.length === 0) return;
+                
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                TrashManager.setButtonLoading(btn, 'Deleting...');
+                
+                this.hideNestedPanel('nestedBulkPermanentDeletePanel');
+                NotificationService.showLoading(`Permanently deleting ${selectedIds.length} product(s)...`);
+                
+                this.performBulkRequest('/products/bulk-permanent-delete', selectedIds)
+                    .then(data => this.handleBulkSuccess(data, 'permanent-delete', () => TrashManager.loadData()))
+                    .catch(error => this.handleBulkError(error, 'permanently deleting'))
+                    .finally(() => TrashManager.resetButton(btn, originalText));
+            },
+
+            // Helper methods
+            validateSelection(selectedIds, action) {
+                if (selectedIds.length === 0) {
+                    NotificationService.showError(`Please select products to ${action}.`);
+                    return false;
+                }
+                return true;
+            },
+
+            populateModal(countId, listId, selectedIds, selectedNames, modalId) {
+                document.getElementById(countId).textContent = selectedIds.length;
+                this.populateList(listId, selectedNames);
+                new bootstrap.Modal(document.getElementById(modalId)).show();
+            },
+
+            populateNestedPanel(countId, listId, selectedIds, selectedNames) {
+                document.getElementById(countId).textContent = selectedIds.length;
+                this.populateList(listId, selectedNames);
+            },
+
+            populateList(listId, names) {
+                const list = document.getElementById(listId);
+                list.innerHTML = '';
+                names.forEach(name => {
+                    const li = document.createElement('li');
+                    li.textContent = name;
+                    list.appendChild(li);
+                });
+            },
+
+            executeBulkOperation(context, endpoint, loadingText, progressText, operation, successCallback) {
+                const selectedIds = SelectionManager.getSelectedIds(context);
+                if (selectedIds.length === 0) return;
+                
+                const btn = event.target;
+                const originalText = btn.innerHTML;
+                TrashManager.setButtonLoading(btn, loadingText);
+                
+                const modalId = this.getModalIdByOperation(operation);
+                if (modalId) {
+                    bootstrap.Modal.getInstance(document.getElementById(modalId)).hide();
+                }
+                
+                NotificationService.showLoading(`${progressText.charAt(0).toUpperCase() + progressText.slice(1)} ${selectedIds.length} product(s)...`);
+                
+                this.performBulkRequest(endpoint, selectedIds)
+                    .then(data => {
+                        this.handleBulkSuccess(data, operation, successCallback);
+                        SelectionManager.clearAllSelections(context);
+                    })
+                    .catch(error => this.handleBulkError(error, progressText))
+                    .finally(() => TrashManager.resetButton(btn, originalText));
+            },
+
+            getModalIdByOperation(operation) {
+                const modalMap = {
+                    'delete': 'bulkDeleteModal',
+                    'restore': 'bulkRestoreModal',
+                    'permanent-delete': 'bulkPermanentDeleteModal'
+                };
+                return modalMap[operation];
+            },
+
+            performBulkRequest(endpoint, ids) {
+                return fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ ids })
+                }).then(response => response.json());
+            },
+
+            handleBulkSuccess(data, operation, successCallback) {
+                NotificationService.hideLoading();
+                
                 if (data.success) {
-                    showNotification(data.message, 'success');
-                    clearAllSelections('trash');
-                    setTimeout(() => {
-                        loadTrashData();
-                        refreshProducts();
-                    }, 500);
-                } else {
-                    showNotification(data.message || 'Error restoring products.', 'error');
-                }
-            })
-            .catch(error => {
-                hideLoadingToast();
-                console.error('Bulk restore error:', error);
-                showNotification('Error restoring products. Please try again.', 'error');
-            })
-            .finally(() => {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            });
-        }
-
-        function confirmNestedBulkPermanentDelete() {
-            const selectedIds = getSelectedIds('trash');
-            if (selectedIds.length === 0) return;
-            
-            const btn = event.target;
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Deleting...';
-            btn.disabled = true;
-            
-            hideNestedPanel('nestedBulkPermanentDeletePanel');
-            showLoadingToast(`Permanently deleting ${selectedIds.length} product(s)...`);
-            
-            fetch('/products/bulk-permanent-delete', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ ids: selectedIds })
-            })
-            .then(response => response.json())
-            .then(data => {
-                hideLoadingToast();
-                if (data.success) {
-                    showNotification(data.message, 'success');
-                    clearAllSelections('trash');
-                    setTimeout(() => loadTrashData(), 500);
-                } else {
-                    showNotification(data.message || 'Error permanently deleting products.', 'error');
-                }
-            })
-            .catch(error => {
-                hideLoadingToast();
-                console.error('Bulk permanent delete error:', error);
-                showNotification('Error permanently deleting products. Please try again.', 'error');
-            })
-            .finally(() => {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            });
-        }
-
-        // Bulk Selection Functions
-        function toggleSelectAll(context = 'main') {
-            const selectAllId = context === 'main' ? 'selectAllMain' : 'selectAllTrash';
-            const checkboxClass = context === 'main' ? 'product-checkbox' : 'trash-checkbox';
-            const selectAll = document.getElementById(selectAllId);
-            const checkboxes = document.querySelectorAll(`.${checkboxClass}`);
-            
-            checkboxes.forEach(cb => {
-                cb.checked = selectAll.checked;
-                const row = cb.closest('tr');
-                if (row) {
-                    row.classList.toggle('selected', cb.checked);
-                }
-            });
-            
-            updateBulkActions(context);
-        }
-
-        function updateBulkActions(context = 'main') {
-            const checkboxClass = context === 'main' ? 'product-checkbox' : 'trash-checkbox';
-            const actionsId = context === 'main' ? 'floatingBulkActions' : 'trashBulkActions';
-            const selectedCountId = context === 'main' ? 'selectedCount' : 'selectedCountTrash';
-            const selectAllId = context === 'main' ? 'selectAllMain' : 'selectAllTrash';
-            
-            const checkboxes = document.querySelectorAll(`.${checkboxClass}`);
-            const selectedCheckboxes = document.querySelectorAll(`.${checkboxClass}:checked`);
-            const bulkActions = document.getElementById(actionsId);
-            const selectedCount = document.getElementById(selectedCountId);
-            const selectAll = document.getElementById(selectAllId);
-            
-            if (selectedCount) selectedCount.textContent = selectedCheckboxes.length;
-            
-            // Update select all checkbox state
-            if (selectAll) {
-                selectAll.indeterminate = selectedCheckboxes.length > 0 && selectedCheckboxes.length < checkboxes.length;
-                selectAll.checked = selectedCheckboxes.length === checkboxes.length && checkboxes.length > 0;
-            }
-            
-            // Show/hide bulk actions
-            if (bulkActions) {
-                bulkActions.classList.toggle('show', selectedCheckboxes.length > 0);
-            }
-            
-            // Update row selection styling
-            checkboxes.forEach(cb => {
-                const row = cb.closest('tr');
-                if (row) {
-                    row.classList.toggle('selected', cb.checked);
-                }
-            });
-        }
-
-        function clearAllSelections(context = 'main') {
-            const checkboxClass = context === 'main' ? 'product-checkbox' : 'trash-checkbox';
-            const selectAllId = context === 'main' ? 'selectAllMain' : 'selectAllTrash';
-            
-            document.querySelectorAll(`.${checkboxClass}`).forEach(cb => {
-                cb.checked = false;
-                const row = cb.closest('tr');
-                if (row) row.classList.remove('selected');
-            });
-            
-            const selectAll = document.getElementById(selectAllId);
-            if (selectAll) {
-                selectAll.checked = false;
-                selectAll.indeterminate = false;
-            }
-            
-            updateBulkActions(context);
-        }
-
-        function getSelectedIds(context = 'main') {
-            const checkboxClass = context === 'main' ? 'product-checkbox' : 'trash-checkbox';
-            return Array.from(document.querySelectorAll(`.${checkboxClass}:checked`)).map(cb => cb.value);
-        }
-
-        function getSelectedProductNames(context = 'main') {
-            const checkboxClass = context === 'main' ? 'product-checkbox' : 'trash-checkbox';
-            const selectedCheckboxes = document.querySelectorAll(`.${checkboxClass}:checked`);
-            const names = [];
-            
-            selectedCheckboxes.forEach(cb => {
-                const row = cb.closest('tr');
-                if (row) {
-                    // Find product name in the row
-                    const nameCell = context === 'main' ? row.cells[2] : row.cells[1]; // Adjust index based on table structure
-                    if (nameCell) {
-                        const nameText = nameCell.textContent.trim();
-                        names.push(nameText);
+                    NotificationService.showNotification(data.message, 'success');
+                    if (successCallback) {
+                        setTimeout(successCallback, 500);
+                    } else if (operation === 'delete') {
+                        setTimeout(() => UtilityFunctions.refreshProducts(), 500);
                     }
-                }
-            });
-            
-            return names;
-        }
-
-        // Modal trigger functions
-        function showBulkDeleteModal() {
-            const selectedIds = getSelectedIds('main');
-            if (selectedIds.length === 0) {
-                showNotification('Please select products to delete.', 'error');
-                return;
-            }
-            
-            const selectedNames = getSelectedProductNames('main');
-            document.getElementById('bulkDeleteCount').textContent = selectedIds.length;
-            
-            const list = document.getElementById('bulkDeleteList');
-            list.innerHTML = '';
-            selectedNames.forEach(name => {
-                const li = document.createElement('li');
-                li.textContent = name;
-                list.appendChild(li);
-            });
-            
-            new bootstrap.Modal(document.getElementById('bulkDeleteModal')).show();
-        }
-
-        function showBulkRestoreModal() {
-            const selectedIds = getSelectedIds('trash');
-            if (selectedIds.length === 0) {
-                showNotification('Please select products to restore.', 'error');
-                return;
-            }
-            
-            const selectedNames = getSelectedProductNames('trash');
-            document.getElementById('bulkRestoreCount').textContent = selectedIds.length;
-            
-            const list = document.getElementById('bulkRestoreList');
-            list.innerHTML = '';
-            selectedNames.forEach(name => {
-                const li = document.createElement('li');
-                li.textContent = name;
-                list.appendChild(li);
-            });
-            
-            new bootstrap.Modal(document.getElementById('bulkRestoreModal')).show();
-        }
-
-        function showBulkPermanentDeleteModal() {
-            const selectedIds = getSelectedIds('trash');
-            if (selectedIds.length === 0) {
-                showNotification('Please select products to permanently delete.', 'error');
-                return;
-            }
-            
-            const selectedNames = getSelectedProductNames('trash');
-            document.getElementById('bulkPermanentDeleteCount').textContent = selectedIds.length;
-            
-            const list = document.getElementById('bulkPermanentDeleteList');
-            list.innerHTML = '';
-            selectedNames.forEach(name => {
-                const li = document.createElement('li');
-                li.textContent = name;
-                list.appendChild(li);
-            });
-            
-            new bootstrap.Modal(document.getElementById('bulkPermanentDeleteModal')).show();
-        }
-
-        // Nested panel functions for trash modal
-        function showNestedBulkRestore() {
-            const selectedIds = getSelectedIds('trash');
-            if (selectedIds.length === 0) {
-                showNotification('Please select products to restore.', 'error');
-                return;
-            }
-            
-            const selectedNames = getSelectedProductNames('trash');
-            document.getElementById('nestedRestoreCount').textContent = selectedIds.length;
-            
-            const list = document.getElementById('nestedRestoreList');
-            list.innerHTML = '';
-            selectedNames.forEach(name => {
-                const li = document.createElement('li');
-                li.textContent = name;
-                list.appendChild(li);
-            });
-            
-            document.getElementById('nestedBulkRestorePanel').classList.add('show');
-        }
-
-        function showNestedBulkPermanentDelete() {
-            const selectedIds = getSelectedIds('trash');
-            if (selectedIds.length === 0) {
-                showNotification('Please select products to permanently delete.', 'error');
-                return;
-            }
-            
-            const selectedNames = getSelectedProductNames('trash');
-            document.getElementById('nestedPermanentDeleteCount').textContent = selectedIds.length;
-            
-            const list = document.getElementById('nestedPermanentDeleteList');
-            list.innerHTML = '';
-            selectedNames.forEach(name => {
-                const li = document.createElement('li');
-                li.textContent = name;
-                list.appendChild(li);
-            });
-            
-            document.getElementById('nestedBulkPermanentDeletePanel').classList.add('show');
-        }
-
-        function hideNestedPanel(panelId) {
-            document.getElementById(panelId).classList.remove('show');
-        }
-
-        // Confirmation functions (called from modals)
-        function confirmBulkDelete() {
-            const selectedIds = getSelectedIds('main');
-            if (selectedIds.length === 0) return;
-            
-            const btn = event.target;
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Moving to trash...';
-            btn.disabled = true;
-            
-            bootstrap.Modal.getInstance(document.getElementById('bulkDeleteModal')).hide();
-            showLoadingToast(`Moving ${selectedIds.length} product(s) to trash...`);
-            
-            fetch('/products/bulk-delete', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ ids: selectedIds })
-            })
-            .then(response => response.json())
-            .then(data => {
-                hideLoadingToast();
-                if (data.success) {
-                    showNotification(data.message, 'success');
-                    clearAllSelections('main');
-                    setTimeout(() => refreshProducts(), 500);
                 } else {
-                    showNotification(data.message || 'Error deleting products.', 'error');
+                    NotificationService.showNotification(data.message || `Error ${operation}ing products.`, 'error');
                 }
-            })
-            .catch(error => {
-                hideLoadingToast();
-                console.error('Bulk delete error:', error);
-                showNotification('Error deleting products. Please try again.', 'error');
-            })
-            .finally(() => {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            });
-        }
+            },
 
-        function confirmBulkRestore() {
-            const selectedIds = getSelectedIds('trash');
-            if (selectedIds.length === 0) return;
-            
-            const btn = event.target;
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Restoring...';
-            btn.disabled = true;
-            
-            bootstrap.Modal.getInstance(document.getElementById('bulkRestoreModal')).hide();
-            showLoadingToast(`Restoring ${selectedIds.length} product(s)...`);
-            
-            fetch('/products/bulk-restore', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ ids: selectedIds })
-            })
-            .then(response => response.json())
-            .then(data => {
-                hideLoadingToast();
-                if (data.success) {
-                    showNotification(data.message, 'success');
-                    clearAllSelections('trash');
-                    setTimeout(() => {
-                        loadTrashData();
-                        refreshProducts();
-                    }, 500);
-                } else {
-                    showNotification(data.message || 'Error restoring products.', 'error');
-                }
-            })
-            .catch(error => {
-                hideLoadingToast();
-                console.error('Bulk restore error:', error);
-                showNotification('Error restoring products. Please try again.', 'error');
-            })
-            .finally(() => {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            });
-        }
+            handleBulkError(error, operation) {
+                NotificationService.hideLoading();
+                console.error(`Bulk ${operation} error:`, error);
+                NotificationService.showError(`Error ${operation} products. Please try again.`);
+            }
+        };
 
-        function confirmBulkPermanentDelete() {
-            const selectedIds = getSelectedIds('trash');
-            if (selectedIds.length === 0) return;
-            
-            const btn = event.target;
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Deleting...';
-            btn.disabled = true;
-            
-            bootstrap.Modal.getInstance(document.getElementById('bulkPermanentDeleteModal')).hide();
-            showLoadingToast(`Permanently deleting ${selectedIds.length} product(s)...`);
-            
-            fetch('/products/bulk-permanent-delete', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ ids: selectedIds })
-            })
-            .then(response => response.json())
-            .then(data => {
-                hideLoadingToast();
-                if (data.success) {
-                    showNotification(data.message, 'success');
-                    clearAllSelections('trash');
-                    setTimeout(() => loadTrashData(), 500);
-                } else {
-                    showNotification(data.message || 'Error permanently deleting products.', 'error');
+        // Global Function Wrappers for HTML onclick handlers
+        // These maintain backward compatibility with existing HTML
+        function openTrashModal() { TrashManager.openModal(); }
+        function refreshTrash() { TrashManager.refresh(); }
+        function confirmRestore() { TrashManager.confirmRestore(); }
+        function confirmPermanentDelete() { TrashManager.confirmPermanentDelete(); }
+        function restoreProduct(id, name) { TrashManager.restoreProduct(id, name); }
+        function permanentDeleteProduct(id, name) { TrashManager.permanentDeleteProduct(id, name); }
+        
+        function viewProduct(id) { ProductActions.view(id); }
+        function editProduct(id) { ProductActions.edit(id); }
+        function deleteProduct(id, name) { ProductActions.delete(id, name); }
+        
+        function toggleSelectAll(context) { SelectionManager.toggleSelectAll(context); }
+        function updateBulkActions(context) { SelectionManager.updateBulkActions(context); }
+        function clearAllSelections(context) { SelectionManager.clearAllSelections(context); }
+        function getSelectedIds(context) { return SelectionManager.getSelectedIds(context); }
+        function getSelectedProductNames(context) { return SelectionManager.getSelectedProductNames(context); }
+        
+        function showBulkDeleteModal() { BulkOperations.showBulkDeleteModal(); }
+        function showBulkRestoreModal() { BulkOperations.showBulkRestoreModal(); }
+        function showBulkPermanentDeleteModal() { BulkOperations.showBulkPermanentDeleteModal(); }
+        function showNestedBulkRestore() { BulkOperations.showNestedBulkRestore(); }
+        function showNestedBulkPermanentDelete() { BulkOperations.showNestedBulkPermanentDelete(); }
+        function hideNestedPanel(panelId) { BulkOperations.hideNestedPanel(panelId); }
+        
+        function confirmBulkDelete() { BulkOperations.confirmBulkDelete(); }
+        function confirmBulkRestore() { BulkOperations.confirmBulkRestore(); }
+        function confirmBulkPermanentDelete() { BulkOperations.confirmBulkPermanentDelete(); }
+        function confirmNestedBulkRestore() { BulkOperations.confirmNestedBulkRestore(); }
+        function confirmNestedBulkPermanentDelete() { BulkOperations.confirmNestedBulkPermanentDelete(); }
+        
+        function showNotification(message, type) { NotificationService.showNotification(message, type); }
+        function showSuccessToast(message) { NotificationService.showSuccess(message); }
+        function showErrorToast(message) { NotificationService.showError(message); }
+        function showInfoToast(message) { NotificationService.showInfo(message); }
+        function showLoadingToast(message) { return NotificationService.showLoading(message); }
+        function hideLoadingToast() { NotificationService.hideLoading(); }
+        function clearAllToasts() { NotificationService.clearAll(); }
+        
+        function clearSearch() { SearchManager.clear(); }
+        function performSearch(query, page) { SearchManager.performSearch(query, page); }
+        function refreshProducts() { UtilityFunctions.refreshProducts(); }
+        function initializeAlerts() { UtilityFunctions.initializeAlerts(); }
+        function escapeHtml(text) { return UtilityFunctions.escapeHtml(text); }
+        
+        function initializeTooltips() { TooltipManager.initialize(); }
+        function disposeAllTooltips() { TooltipManager.disposeAll(); }
+        
+        function setLoading(loading) { UIHelper.setLoading(loading); }
+        function startGlobalRealTimeUpdates() { RealTimeUpdater.start(); }
+        function stopGlobalRealTimeUpdates() { RealTimeUpdater.stop(); }
+
+        // Print and Export Manager - Clean, optimized implementation
+        const PrintExportManager = {
+            // Constants
+            PRINT_STYLES: `
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                .print-title { font-size: 24px; font-weight: bold; text-align: center; margin-bottom: 10px; }
+                .print-date { text-align: right; font-size: 14px; margin-bottom: 20px; color: #666; }
+                .print-search { font-size: 16px; margin-bottom: 20px; font-style: italic; }
+                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+                th { background-color: #f0f0f0; font-weight: bold; }
+                .print-summary { margin-top: 20px; font-size: 14px; }
+                .no-products { text-align: center; font-style: italic; color: #666; }
+            `,
+
+            CSV_HEADERS: ['ID', 'Product Name', 'Description', 'Price', 'Created Date', 'Updated Date'],
+
+            // Public API
+            printProducts() {
+                try {
+                    const products = this._getVisibleProducts();
+                    const printContent = this._generatePrintHTML(products);
+                    this._executePrint(printContent);
+                } catch (error) {
+                    console.error('Print error:', error);
                 }
-            })
-            .catch(error => {
-                hideLoadingToast();
-                console.error('Bulk permanent delete error:', error);
-                showNotification('Error permanently deleting products. Please try again.', 'error');
-            })
-            .finally(() => {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            });
-        }
+            },
+
+            exportToCSV(selectedOnly = false) {
+                try {
+                    const products = selectedOnly ? this._getSelectedProducts() : this._getVisibleProducts();
+                    
+                    if (!this._validateProductsForExport(products, selectedOnly)) {
+                        return;
+                    }
+
+                    const csvContent = this._generateCSV(products);
+                    const filename = this._createFilename(selectedOnly);
+                    
+                    this._downloadFile(csvContent, filename, 'text/csv');
+                    this._showExportSuccess(products.length, filename);
+                } catch (error) {
+                    console.error('Export error:', error);
+                    NotificationService.showError('Export failed. Please try again.');
+                }
+            },
+
+            // Private methods - Print functionality
+            _generatePrintHTML(products) {
+                const context = this._createPrintContext();
+                const header = this._buildPrintHeader(context);
+                const content = products.length > 0 
+                    ? this._buildProductTable(products) 
+                    : this._buildEmptyState();
+                
+                return this._assemblePrintDocument(context.title, header, content);
+            },
+
+            _createPrintContext() {
+                const searchTerm = this._getSearchTerm();
+                return {
+                    title: searchTerm ? `Products List - Search Results for "${searchTerm}"` : 'Products List',
+                    date: new Date().toLocaleDateString(),
+                    time: new Date().toLocaleTimeString(),
+                    searchTerm
+                };
+            },
+
+            _buildPrintHeader(context) {
+                let header = `
+                    <div class="print-title">${context.title}</div>
+                    <div class="print-date">Generated on ${context.date} at ${context.time}</div>
+                `;
+                
+                if (context.searchTerm) {
+                    header += `<div class="print-search">Search Term: "${context.searchTerm}"</div>`;
+                }
+                
+                return header;
+            },
+
+            _buildProductTable(products) {
+                const tableHeader = this._buildTableHeader();
+                const tableBody = this._buildTableBody(products);
+                const summary = `<div class="print-summary">Total Products: ${products.length}</div>`;
+                
+                return `<table>${tableHeader}${tableBody}</table>${summary}`;
+            },
+
+            _buildTableHeader() {
+                return `
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Product Name</th>
+                            <th>Description</th>
+                            <th>Price</th>
+                            <th>Created Date</th>
+                        </tr>
+                    </thead>
+                `;
+            },
+
+            _buildTableBody(products) {
+                const rows = products.map(product => this._buildTableRow(product)).join('');
+                return `<tbody>${rows}</tbody>`;
+            },
+
+            _buildTableRow(product) {
+                return `
+                    <tr>
+                        <td>${this._escapeHtml(product.id)}</td>
+                        <td>${this._escapeHtml(product.name)}</td>
+                        <td>${this._escapeHtml(product.description || 'N/A')}</td>
+                        <td>₱${this._escapeHtml(product.price)}</td>
+                        <td>${this._escapeHtml(product.created_at)}</td>
+                    </tr>
+                `;
+            },
+
+            _buildEmptyState() {
+                return '<div class="no-products">No products found</div>';
+            },
+
+            _assemblePrintDocument(title, header, content) {
+                return `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <title>${title}</title>
+                        <style>${this.PRINT_STYLES}</style>
+                    </head>
+                    <body>
+                        ${header}
+                        ${content}
+                    </body>
+                    </html>
+                `;
+            },
+
+            _executePrint(htmlContent) {
+                const printWindow = window.open('', '_blank');
+                if (!printWindow) {
+                    throw new Error('Popup blocked. Please allow popups for printing.');
+                }
+
+                printWindow.document.write(htmlContent);
+                printWindow.document.close();
+                
+                printWindow.onload = () => {
+                    printWindow.focus();
+                    printWindow.print();
+                    printWindow.close();
+                };
+            },
+
+            // Private methods - CSV functionality
+            _validateProductsForExport(products, selectedOnly) {
+                if (products.length === 0) {
+                    const message = selectedOnly 
+                        ? 'No products selected for export.' 
+                        : 'No products available to export.';
+                    NotificationService.showError(message);
+                    return false;
+                }
+                return true;
+            },
+
+            _generateCSV(products) {
+                const header = this.CSV_HEADERS.join(',') + '\n';
+                const rows = products.map(product => this._buildCSVRow(product)).join('\n');
+                return header + rows;
+            },
+
+            _buildCSVRow(product) {
+                return [
+                    product.id,
+                    this._escapeCSV(product.name),
+                    this._escapeCSV(product.description || ''),
+                    product.price,
+                    this._escapeCSV(product.created_at),
+                    this._escapeCSV(product.updated_at || product.created_at)
+                ].join(',');
+            },
+
+            _createFilename(selectedOnly) {
+                const parts = ['products'];
+                
+                if (selectedOnly) parts.push('selected');
+                
+                const searchTerm = this._getSearchTerm();
+                if (searchTerm) {
+                    const sanitized = searchTerm.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
+                    parts.push('search', sanitized);
+                }
+                
+                parts.push(new Date().toISOString().split('T')[0]);
+                return parts.join('_') + '.csv';
+            },
+
+            _downloadFile(content, filename, mimeType) {
+                const blob = new Blob([content], { type: `${mimeType};charset=utf-8;` });
+                const url = URL.createObjectURL(blob);
+                
+                try {
+                    const link = this._createDownloadLink(url, filename);
+                    this._triggerDownload(link);
+                } finally {
+                    URL.revokeObjectURL(url);
+                }
+            },
+
+            _createDownloadLink(url, filename) {
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', filename);
+                link.style.visibility = 'hidden';
+                return link;
+            },
+
+            _triggerDownload(link) {
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            },
+
+            _showExportSuccess(count, filename) {
+                NotificationService.showSuccess(`Exported ${count} product(s) to ${filename}`);
+            },
+
+            // Private methods - Data extraction
+            _getVisibleProducts() {
+                const tableRows = document.querySelectorAll('#productsTableContainer tbody tr');
+                return Array.from(tableRows)
+                    .map(row => this._extractProductFromRow(row))
+                    .filter(product => product !== null);
+            },
+
+            _getSelectedProducts() {
+                const selectedCheckboxes = document.querySelectorAll('.product-checkbox:checked');
+                return Array.from(selectedCheckboxes)
+                    .map(checkbox => this._extractProductFromRow(checkbox.closest('tr')))
+                    .filter(product => product !== null);
+            },
+
+            _extractProductFromRow(row) {
+                const cells = row.querySelectorAll('td');
+                if (cells.length < 5) return null;
+
+                const hasCheckbox = row.querySelector('.select-checkbox');
+                const offset = hasCheckbox ? 1 : 0;
+
+                return {
+                    id: this._getCellText(cells[0 + offset]),
+                    name: this._getCellText(cells[1 + offset]),
+                    description: this._getCellText(cells[2 + offset]),
+                    price: this._cleanPrice(this._getCellText(cells[3 + offset])),
+                    created_at: this._getCellText(cells[4 + offset]),
+                    updated_at: this._getCellText(cells[4 + offset]) // Using created_at as fallback
+                };
+            },
+
+            _getCellText(cell) {
+                return cell?.textContent?.trim() || '';
+            },
+
+            _cleanPrice(priceText) {
+                return priceText.replace(/₱|,/g, '');
+            },
+
+            _getSearchTerm() {
+                return document.getElementById('searchInput')?.value?.trim() || '';
+            },
+
+            // Private methods - Utilities
+            _escapeHtml(text) {
+                if (!text) return '';
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            },
+
+            _escapeCSV(value) {
+                if (value === null || value === undefined) return '';
+                const stringValue = String(value);
+                
+                if (this._needsCSVEscaping(stringValue)) {
+                    return `"${stringValue.replace(/"/g, '""')}"`;
+                }
+                
+                return stringValue;
+            },
+
+            _needsCSVEscaping(value) {
+                return value.includes(',') || value.includes('"') || value.includes('\n');
+            }
+        };
+
+        // Global functions for HTML onclick handlers
+        function printProducts() { PrintExportManager.printProducts(); }
+        function exportToCSV() { PrintExportManager.exportToCSV(); }
+        function exportSelectedToCSV() { PrintExportManager.exportToCSV(true); }
+
+        // Initialize the complete application
+        setTimeout(() => {
+            AppInitializer.initializeMainApp();
+            EventHandlers.initialize();
+        }, 100);
     </script>
 
     </script>

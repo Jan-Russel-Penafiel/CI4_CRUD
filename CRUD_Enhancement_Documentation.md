@@ -373,7 +373,6 @@ if (!$product) {
 - Product categories and tags
 - Image upload functionality
 - Bulk operations (edit, delete)
-- Export functionality (PDF, Excel)
 
 ### 2. Performance Improvements
 - Caching system implementation
