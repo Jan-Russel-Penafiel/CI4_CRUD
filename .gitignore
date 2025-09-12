@@ -48,3 +48,9 @@ Thumbs.db
 # Backup files
 *.bak
 *~
+
+# Archive files
+*.zip
+*.rar
+*.tar
+*.tar.gz
