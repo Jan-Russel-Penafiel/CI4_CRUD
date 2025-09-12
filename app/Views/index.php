@@ -369,7 +369,18 @@
         .status-indicator.error {
             background-color: #f8d7da;
             color: #721c24;
-            border: 1px solid #f5c6cb
+            border: 1px solid #f5c6cb;
+            cursor: default
+        }
+
+        .status-indicator.error small {
+            color: #495057;
+            font-weight: 600
+        }
+
+        .status-indicator.error small:hover {
+            color: #212529;
+            text-decoration: underline !important
         }
 
         .toast {
@@ -733,7 +744,7 @@
             width: 16px;
             height: 16px;
             border: 2px solid #f3f3f3;
-            border-top: 2px solid #007bff;
+            border-top: 2px solid #ffffff;
             border-radius: 50%;
             animation: spin 1s linear infinite
         }
@@ -751,6 +762,193 @@
             border-color: #007bff !important;
             box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important
         }
+
+        /* Statistics Modal Styles - Black & White Theme */
+        #statisticsModal .modal-dialog {
+            max-width: 1200px;
+            margin: 1rem auto;
+        }
+
+        #statisticsModal .modal-content {
+            font-size: 0.75rem;
+            background-color: var(--primary-white);
+            border: 1px solid var(--primary-black);
+        }
+
+        #statisticsModal .modal-header {
+            background: linear-gradient(135deg, var(--primary-black) 0%, var(--dark-gray) 100%);
+            color: var(--primary-white);
+            border-bottom: 1px solid var(--primary-black);
+        }
+
+        #statisticsModal .modal-body {
+            padding: 0.5rem;
+            background-color: var(--light-gray);
+        }
+
+        #statisticsModal .container-fluid {
+            padding: 0.5rem !important
+        }
+
+        #statisticsModal .card {
+            border: 1px solid var(--primary-black);
+            background-color: var(--primary-white);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease-in-out;
+            font-size: 0.7rem
+        }
+
+        #statisticsModal .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15)
+        }
+
+        #statisticsModal .card-header {
+            font-weight: 600;
+            background: linear-gradient(135deg, var(--primary-black) 0%, var(--dark-gray) 100%);
+            color: var(--primary-white);
+            border-bottom: 1px solid var(--primary-black);
+            padding: 0.4rem 0.6rem;
+            font-size: 0.7rem
+        }
+
+        #statisticsModal .card-body {
+            padding: 0.6rem;
+            font-size: 0.7rem;
+            background-color: var(--primary-white);
+            color: var(--primary-black);
+        }
+
+        #statisticsModal .bg-primary {
+            background: linear-gradient(135deg, var(--primary-black) 0%, var(--dark-gray) 100%) !important;
+            color: var(--primary-white) !important;
+        }
+
+        #statisticsModal .bg-success {
+            background: linear-gradient(135deg, var(--primary-black) 0%, var(--dark-gray) 100%) !important;
+            color: var(--primary-white) !important;
+        }
+
+        #statisticsModal .bg-info {
+            background: linear-gradient(135deg, var(--primary-white) 0%, var(--light-gray) 100%) !important;
+            color: var(--primary-black) !important;
+            border: 1px solid var(--primary-black);
+        }
+
+        #statisticsModal .bg-warning {
+            background: linear-gradient(135deg, var(--primary-white) 0%, var(--light-gray) 100%) !important;
+            color: var(--primary-black) !important;
+            border: 1px solid var(--primary-black);
+        }
+
+        .statistics-card {
+            transition: all 0.3s ease-in-out
+        }
+
+        .statistics-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15)
+        }
+
+        .activity-item {
+            transition: background-color 0.2s ease-in-out
+        }
+
+        .activity-item:hover {
+            background-color: var(--light-gray) !important
+        }
+
+        .chart-container {
+            position: relative;
+            height: 180px;
+            width: 100%
+        }
+
+        #statisticsModal canvas {
+            font-size: 0.65rem
+        }
+
+        .stats-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 90px
+        }
+
+        .period-selector .btn-check:checked + .btn-outline-primary {
+            background-color: var(--primary-black);
+            border-color: var(--primary-black);
+            color: var(--primary-white)
+        }
+
+        #statisticsModal .btn {
+            font-size: 0.65rem;
+            padding: 0.3rem 0.6rem
+        }
+
+        #statisticsModal .btn-group .btn {
+            font-size: 0.65rem;
+            padding: 0.25rem 0.5rem
+        }
+
+        #statisticsModal .modal-footer .btn {
+            font-size: 0.7rem;
+            padding: 0.3rem 0.8rem
+        }
+
+        /* Statistics Modal Loading States */
+        #statisticsModal .spinner-border {
+            width: 1rem;
+            height: 1rem;
+            border-width: 0.1rem
+        }
+
+        #statisticsModal .spinner-border-sm {
+            width: 0.8rem;
+            height: 0.8rem;
+            border-width: 0.1rem
+        }
+
+        .summary-card h3 {
+            font-weight: 700;
+            font-size: 1.1rem
+        }
+
+        .summary-card small {
+            font-size: 0.6rem;
+            opacity: 0.9
+        }
+
+        .summary-card .fa-2x {
+            font-size: 1.2rem !important
+        }
+
+
+
+        @media (max-width: 768px) {
+            #statisticsModal .modal-dialog {
+                max-width: 95%;
+                margin: 1rem
+            }
+            
+            #statisticsModal .card-body {
+                padding: 1rem
+            }
+            
+            .summary-card h3 {
+                font-size: 1.4rem
+            }
+            
+            .btn-group {
+                display: flex;
+                flex-direction: column;
+                gap: 0.25rem
+            }
+            
+            .btn-group .btn {
+                border-radius: 0.375rem !important
+            }
+        }
     </style>
 </head>
 
@@ -765,7 +963,7 @@
                     <p class="mb-0 mt-2">Complete CRUD Operations System</p>
                 </div>
                 <div class="col-md-6 text-end"><?php if (isset($show_login) && $show_login): ?><span class="btn btn-outline-light btn-lg" disabled><i class="fas fa-lock me-2"></i>Login Required</span><?php else: ?><div class="d-flex justify-content-end align-items-center gap-3"><small class="text-light"><i class="fas fa-user me-1"></i>Welcome, Admin!</small>
-                            <div class="auto-refresh-indicator" id="autoRefreshStatus" title="Auto-sync is always enabled"><i class="fas fa-circle me-1"></i><span id="autoRefreshText">Auto-sync ON</span></div><a href="#" onclick="openTrashModal()" class="btn btn-outline-light"><i class="fas fa-trash me-2"></i>Trash</a><a href="/logout" class="btn btn-outline-light"><i class="fas fa-sign-out-alt me-2"></i>Logout</a>
+                            <div class="auto-refresh-indicator" id="autoRefreshStatus" title="Auto-sync is always enabled"><i class="fas fa-circle me-1"></i><span id="autoRefreshText">Auto-sync ON</span></div><a href="#" onclick="openStatisticsModal()" class="btn btn-outline-light"><i class="fas fa-chart-bar me-2"></i>Statistics</a><a href="#" onclick="openTrashModal()" class="btn btn-outline-light"><i class="fas fa-trash me-2"></i>Trash</a><a href="/logout" class="btn btn-outline-light"><i class="fas fa-sign-out-alt me-2"></i>Logout</a>
                         </div><?php endif; ?></div>
             </div>
         </div>
@@ -823,8 +1021,8 @@
                 </div>
                 <div class="card-body p-0" id="productsTableContainer">
                     <div id="loadingState" class="text-center py-5" style="display:none;">
-                        <div class="spinner-border text-primary"><span class="visually-hidden">Loading...</span></div>
-                        <p class="mt-3 text-muted">Loading products...</p>
+                        <div class="spinner-border text-white"><span class="visually-hidden">Loading...</span></div>
+                        <p class="mt-3 text-white">Loading products...</p>
                     </div>
 
                     <?php if (isset($error_message)): ?>
@@ -905,11 +1103,11 @@
                 </div>
                 <div class="modal-body p-0" id="trashModalBody">
                     <div class="text-center py-5">
-                        <div class="spinner-border text-primary"><span class="visually-hidden">Loading...</span></div>
-                        <p class="mt-3 text-muted">Loading trash...</p>
+                        <div class="spinner-border text-white"><span class="visually-hidden">Loading...</span></div>
+                        <p class="mt-3 text-white">Loading trash...</p>
                     </div>
                 </div>
-                <div class="modal-footer"><button type="button" class="btn btn-outline-black" data-bs-dismiss="modal">Close</button><button type="button" class="btn btn-black" onclick="refreshTrash()"><i class="fas fa-sync-alt me-2"></i>Refresh</button></div>
+                <div class="modal-footer"><button type="button" class="btn btn-black" onclick="refreshTrash()"><i class="fas fa-sync-alt me-2"></i>Refresh</button></div>
 
                 <!-- Nested Bulk Restore Panel -->
                 <div class="modal-overlay-panel" id="nestedBulkRestorePanel">
@@ -1042,7 +1240,118 @@
         </div>
     </div>
 
+    <!-- Statistics Modal -->
+    <div class="modal fade" id="statisticsModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="fas fa-chart-bar me-2"></i>Product Statistics Dashboard</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0" id="statisticsModalBody">
+                    <div class="container-fluid p-4">
+                        <!-- Time Range Selector -->
+                        <div class="row mb-2">
+                            <div class="col-md-12">
+                                <div class="card">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0" style="font-size: 0.7rem;"><i class="fas fa-calendar-alt me-1" style="font-size: 0.65rem;"></i>Time Period</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="btn-group period-selector" role="group" aria-label="Time period">
+                                            <input type="radio" class="btn-check" name="timePeriod" id="dailyStats" value="daily" checked>
+                                            <label class="btn btn-outline-primary" for="dailyStats"><i class="fas fa-calendar-day me-1"></i>Daily</label>
+                                            
+                                            <input type="radio" class="btn-check" name="timePeriod" id="weeklyStats" value="weekly">
+                                            <label class="btn btn-outline-primary" for="weeklyStats"><i class="fas fa-calendar-week me-1"></i>Weekly</label>
+                                            
+                                            <input type="radio" class="btn-check" name="timePeriod" id="monthlyStats" value="monthly">
+                                            <label class="btn btn-outline-primary" for="monthlyStats"><i class="fas fa-calendar-alt me-1"></i>Monthly</label>
+                                        </div>
+                                        <button class="btn btn-success ms-2" onclick="refreshStatistics()">
+                                            <i class="fas fa-sync-alt me-1"></i>Refresh
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Summary Cards -->
+                        <div class="row mb-2">
+                            <div class="col-md-3 mb-3">
+                                <div class="card text-center bg-primary text-white statistics-card summary-card">
+                                    <div class="card-body">
+                                        <i class="fas fa-box-open fa-2x mb-2"></i>
+                                        <h3 id="totalProducts" class="mb-0">0</h3>
+                                        <small>Total Products</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card text-center bg-success text-white statistics-card summary-card">
+                                    <div class="card-body">
+                                        <i class="fas fa-plus-circle fa-2x mb-2"></i>
+                                        <h3 id="productsAdded" class="mb-0">0</h3>
+                                        <small>Added <span id="addedPeriod">Today</span></small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card text-center bg-info text-white statistics-card summary-card">
+                                    <div class="card-body">
+                                        <i class="fas fa-edit fa-2x mb-2"></i>
+                                        <h3 id="productsUpdated" class="mb-0">0</h3>
+                                        <small>Updated <span id="updatedPeriod">Today</span></small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <div class="card text-center bg-warning text-white statistics-card summary-card">
+                                    <div class="card-body">
+                                        <i class="fas fa-dollar-sign fa-2x mb-2"></i>
+                                        <h3 id="totalPrice" class="mb-0">₱0</h3>
+                                        <small>Total Value</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Charts Row -->
+                        <div class="row mb-2">
+                            <div class="col-md-8 mb-2">
+                                <div class="card">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0" style="font-size: 0.7rem;"><i class="fas fa-chart-line me-1" style="font-size: 0.65rem;"></i>Products Created Over Time</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="productsChart" style="height: 180px;"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-2">
+                                <div class="card">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0" style="font-size: 0.7rem;"><i class="fas fa-chart-pie me-1" style="font-size: 0.65rem;"></i>Price Distribution</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <canvas id="priceChart" style="height: 180px;"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-primary" onclick="printStatistics()">
+                        <i class="fas fa-print me-2"></i>Print Statistics
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         // Application State Management
         const AppState = {
@@ -1066,7 +1375,9 @@
             lastUpdateTime: new Date().getTime(),
             connectionRetryCount: 0,
             maxRetryAttempts: 5,
-            updateCheckInterval: 2000
+            updateCheckInterval: 2000,
+            redirectCountdown: null,
+            isRedirecting: false
         };
 
         // Toast Notification Configuration
@@ -1137,7 +1448,7 @@
                     'success': { bgClass: 'bg-success', icon: 'fas fa-check-circle', title: 'Success', delay: 4000 },
                     'error': { bgClass: 'bg-danger', icon: 'fas fa-exclamation-circle', title: 'Error', delay: 6000 },
                     'info': { bgClass: 'bg-info', icon: 'fas fa-info-circle', title: 'Information', delay: 5000 },
-                    'loading': { bgClass: 'bg-primary', icon: 'fas fa-spinner fa-spin', title: 'Loading', delay: 0 }
+                    'loading': { bgClass: 'bg-white text-dark', icon: 'fas fa-spinner fa-spin', title: 'Loading', delay: 0 }
                 };
                 return configs[type] || configs['info'];
             },
@@ -1755,6 +2066,12 @@
                     return;
                 }
                 
+                // Cancel any pending redirect if connection is restored
+                if (RealTimeConfig.isRedirecting) {
+                    this.cancelRedirect();
+                    return; // cancelRedirect will call start() again
+                }
+                
                 UIHelper.updateAutoRefreshStatus('connected', 'Auto-sync ON');
                 RealTimeConfig.autoRefreshInterval = setInterval(() => this.checkForUpdates(), RealTimeConfig.updateCheckInterval);
             },
@@ -1826,6 +2143,12 @@
 
             handleUpdateResponse(html) {
                 try {
+                    // Cancel any pending redirect since we got a successful response
+                    if (RealTimeConfig.isRedirecting) {
+                        this.clearRedirectCountdown();
+                        NotificationService.showSuccess('Connection restored successfully!');
+                    }
+                    
                     const temp = document.createElement('div');
                     temp.innerHTML = html;
                     const hasChanges = this.detectChanges(temp);
@@ -1839,6 +2162,9 @@
                         UIHelper.updateAutoRefreshStatus('connected', 'Auto-sync ON');
                         this.updatePaginationAndCounts(temp);
                     }
+                    
+                    // Reset connection retry count on successful response
+                    RealTimeConfig.connectionRetryCount = 0;
                 } catch (error) {
                     console.error('Error processing update response:', error);
                     this.handleUpdateError(error);
@@ -1851,14 +2177,113 @@
                 
                 if (RealTimeConfig.connectionRetryCount >= RealTimeConfig.maxRetryAttempts) {
                     this.stop();
-                    UIHelper.showGlobalStatus('error', 'Connection lost - Retrying in 30 seconds');
-                    setTimeout(() => {
-                        RealTimeConfig.connectionRetryCount = 0;
-                        this.start();
-                    }, 30000);
+                    this.showConnectionLostMessage();
                 } else {
                     UIHelper.updateAutoRefreshStatus('error', `Retry ${RealTimeConfig.connectionRetryCount}/${RealTimeConfig.maxRetryAttempts}`);
                 }
+            },
+
+            showConnectionLostMessage() {
+                // Prevent multiple redirect countdowns
+                if (RealTimeConfig.isRedirecting) return;
+                
+                RealTimeConfig.isRedirecting = true;
+                this.updateConnectionLostStatus(30);
+                this.showConnectionLostToast();
+                
+                // Start countdown timer
+                let countdown = 30;
+                RealTimeConfig.redirectCountdown = setInterval(() => {
+                    countdown--;
+                    if (countdown > 0 && RealTimeConfig.isRedirecting) {
+                        this.updateConnectionLostStatus(countdown);
+                    } else {
+                        this.clearRedirectCountdown();
+                        if (countdown <= 0) {
+                            this.redirectToLogin();
+                        }
+                    }
+                }, 1000);
+            },
+
+            updateConnectionLostStatus(seconds) {
+                const indicator = document.getElementById('statusIndicator');
+                const statusText = document.getElementById('statusText');
+                
+                if (indicator && statusText) {
+                    indicator.className = 'status-indicator error';
+                    statusText.innerHTML = `
+                        Connection lost - Redirecting to login in ${seconds} seconds
+                        <br><small style="cursor: pointer; text-decoration: underline;" onclick="cancelLoginRedirect()">
+                            Click here to stay logged in
+                        </small>
+                    `;
+                    indicator.style.display = 'block';
+                }
+            },
+
+            showConnectionLostToast() {
+                NotificationService.showError(`
+                    Connection lost. You will be redirected to login page in 30 seconds.
+                    <br><small><strong>Click "Stay Logged In" in the red banner above to cancel.</strong></small>
+                `);
+            },
+
+            clearRedirectCountdown() {
+                if (RealTimeConfig.redirectCountdown) {
+                    clearInterval(RealTimeConfig.redirectCountdown);
+                    RealTimeConfig.redirectCountdown = null;
+                }
+                RealTimeConfig.isRedirecting = false;
+            },
+
+            cancelRedirect() {
+                this.clearRedirectCountdown();
+                
+                // Hide the status indicator
+                const indicator = document.getElementById('statusIndicator');
+                if (indicator) {
+                    indicator.style.display = 'none';
+                }
+                
+                NotificationService.showSuccess('Redirect cancelled. Attempting to reconnect...');
+                
+                // Reset retry count and restart updates
+                RealTimeConfig.connectionRetryCount = 0;
+                
+                // Try to reconnect immediately
+                this.checkForUpdates();
+                
+                // Restart the auto-refresh
+                this.start();
+            },
+
+            redirectToLogin() {
+                if (!RealTimeConfig.isRedirecting) return;
+                
+                console.log('Redirecting to login due to connection timeout');
+                NotificationService.showInfo('Redirecting to login page...');
+                
+                // Clear all intervals and timeouts
+                this.stop();
+                this.clearRedirectCountdown();
+                clearTimeout(AppState.searchTimeout);
+                
+                // Redirect to login page
+                setTimeout(() => {
+                    // First try common login routes
+                    const loginRoutes = ['/login', '/auth/login', '/?login=1'];
+                    
+                    // Try the first route, others as fallback
+                    try {
+                        console.log('Attempting redirect to:', window.location.origin + loginRoutes[0]);
+                        window.location.href = window.location.origin + loginRoutes[0];
+                    } catch (error) {
+                        console.log('Fallback redirect to:', window.location.origin + '/?login=1');
+                        // Fallback: reload page with login parameter
+                        window.location.href = window.location.origin + '/?login=1';
+                    }
+                }, 1000);
             },
 
             detectChanges(tempDiv) {
@@ -2329,11 +2754,12 @@
             },
 
             refreshProducts() {
-                const searchInput = document.getElementById('searchInput');
-                if (searchInput) {
-                    NotificationService.showLoading('Refreshing products...');
-                    SearchManager.performSearch(searchInput.value.trim());
-                }
+                NotificationService.showLoading('Refreshing products...');
+                
+                // Simple reload the screen after brief delay
+                setTimeout(() => {
+                    window.location.reload();
+                }, 500);
             },
 
             initializeAlerts() {
@@ -2930,6 +3356,7 @@
         function setLoading(loading) { UIHelper.setLoading(loading); }
         function startGlobalRealTimeUpdates() { RealTimeUpdater.start(); }
         function stopGlobalRealTimeUpdates() { RealTimeUpdater.stop(); }
+        function cancelLoginRedirect() { RealTimeUpdater.cancelRedirect(); }
 
         // Print and Export Manager - Clean, optimized implementation
         const PrintExportManager = {
@@ -3233,8 +3660,322 @@
             AppInitializer.initializeMainApp();
             EventHandlers.initialize();
         }, 100);
-    </script>
 
+        // Statistics Management System
+        const StatisticsManager = {
+            charts: {
+                productsChart: null,
+                priceChart: null
+            },
+            
+            currentPeriod: 'daily',
+            isLoading: false,
+
+            openModal() {
+                const modal = new bootstrap.Modal(document.getElementById('statisticsModal'));
+                modal.show();
+                this.loadStatistics();
+            },
+
+            closeModal() {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('statisticsModal'));
+                if (modal) modal.hide();
+            },
+
+            loadStatistics() {
+                if (this.isLoading) return;
+                
+                this.isLoading = true;
+                this.showLoading();
+                
+                // Get selected time period
+                const selectedPeriod = document.querySelector('input[name="timePeriod"]:checked');
+                this.currentPeriod = selectedPeriod ? selectedPeriod.value : 'daily';
+                
+                // Simulate API call - replace with actual endpoint
+                this.fetchStatisticsData()
+                    .then(data => this.renderStatistics(data))
+                    .catch(error => this.handleError(error))
+                    .finally(() => this.isLoading = false);
+            },
+
+            async fetchStatisticsData() {
+                try {
+                    const response = await fetch(`/api/statistics?period=${this.currentPeriod}`);
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        return result.data;
+                    } else {
+                        throw new Error(result.message || 'Failed to fetch statistics');
+                    }
+                } catch (error) {
+                    console.error('Error fetching statistics:', error);
+                    NotificationService.showError('Failed to load statistics: ' + error.message);
+                    throw error;
+                }
+            },
+
+            renderStatistics(data) {
+                // Update summary cards
+                document.getElementById('totalProducts').textContent = data.summary.totalProducts;
+                document.getElementById('productsAdded').textContent = data.summary.productsAdded;
+                document.getElementById('productsUpdated').textContent = data.summary.productsUpdated;
+                document.getElementById('totalPrice').textContent = `₱${data.summary.totalPrice.toLocaleString()}`;
+
+                // Update period labels
+                const periodText = this.currentPeriod === 'daily' ? 'Today' : 
+                                 this.currentPeriod === 'weekly' ? 'This Week' : 'This Month';
+                document.getElementById('addedPeriod').textContent = periodText;
+                document.getElementById('updatedPeriod').textContent = periodText;
+
+                // Render charts
+                this.renderProductsChart(data.chartData);
+                this.renderPriceChart(data.priceDistribution);
+            },
+
+            renderProductsChart(chartData) {
+                const ctx = document.getElementById('productsChart').getContext('2d');
+                
+                // Destroy existing chart if it exists
+                if (this.charts.productsChart) {
+                    this.charts.productsChart.destroy();
+                }
+
+                this.charts.productsChart = new Chart(ctx, {
+                    type: 'line',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: false
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `Products: ${context.parsed.y}`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            },
+
+            renderPriceChart(priceData) {
+                const ctx = document.getElementById('priceChart').getContext('2d');
+                
+                // Destroy existing chart if it exists
+                if (this.charts.priceChart) {
+                    this.charts.priceChart.destroy();
+                }
+
+                this.charts.priceChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: priceData.labels,
+                        datasets: [{
+                            data: priceData.data,
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.8)',
+                                'rgba(54, 162, 235, 0.8)',
+                                'rgba(255, 205, 86, 0.8)',
+                                'rgba(75, 192, 192, 0.8)'
+                            ],
+                            borderColor: [
+                                'rgba(255, 99, 132, 1)',
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 205, 86, 1)',
+                                'rgba(75, 192, 192, 1)'
+                            ],
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const label = context.label || '';
+                                        const value = context.parsed;
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((value / total) * 100).toFixed(1);
+                                        return `${label}: ${value} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            },
+
+            showLoading() {
+                const elements = ['totalProducts', 'productsAdded', 'productsUpdated', 'totalPrice'];
+                elements.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerHTML = '<div class="spinner-border spinner-border-sm text-secondary" role="status" style="width: 0.7rem; height: 0.7rem; border-width: 0.08rem;"><span class="visually-hidden">Loading...</span></div>';
+                });
+            },
+
+            handleError(error) {
+                console.error('Statistics error:', error);
+                NotificationService.showError('Failed to load statistics. Please try again.');
+                
+                // Reset to default values
+                ['totalProducts', 'productsAdded', 'productsUpdated'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = '0';
+                });
+                
+                document.getElementById('totalPrice').textContent = '₱0';
+            },
+
+            refresh() {
+                NotificationService.showInfo('Refreshing data...');
+                this.loadStatistics();
+            },
+
+            printData() {
+                NotificationService.showInfo('Preparing charts for print...');
+                
+                // Create a new window for printing charts only
+                const printWindow = window.open('', '_blank', 'width=800,height=600');
+                
+                const selectedPeriod = document.querySelector('input[name="timePeriod"]:checked');
+                const periodText = selectedPeriod ? selectedPeriod.value.charAt(0).toUpperCase() + selectedPeriod.value.slice(1) : 'Daily';
+                
+                // Create print-friendly HTML for charts only
+                const printContent = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Charts - ${periodText}</title>
+                    <style>
+                        body { 
+                            font-family: Arial, sans-serif; 
+                            margin: 20px;
+                            text-align: center; 
+                        }
+                        .header { 
+                            margin-bottom: 20px; 
+                        }
+                        .chart-container { 
+                            margin: 30px 0; 
+                            page-break-inside: avoid;
+                            text-align: center;
+                        }
+                        .chart-title { 
+                            font-weight: bold; 
+                            margin-bottom: 15px; 
+                            font-size: 18px; 
+                            color: #333;
+                        }
+                        .chart-image {
+                            max-width: 90%;
+                            height: auto;
+                            border: 1px solid #ddd;
+                            border-radius: 8px;
+                            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                        }
+                        @media print {
+                            body { margin: 10px; }
+                            .chart-container { page-break-inside: avoid; }
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h2>Statistics Charts - ${periodText}</h2>
+                        <p>Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</p>
+                    </div>
+                    <div id="printContent"></div>
+                </body>
+                </html>`;
+                
+                printWindow.document.write(printContent);
+                printWindow.document.close();
+                
+                // Wait for the window to load then extract and print only charts
+                printWindow.onload = () => {
+                    const printBody = printWindow.document.getElementById('printContent');
+                    
+                    // Get only canvas elements (charts)
+                    const canvases = document.querySelectorAll('#statisticsModal canvas');
+                    
+                    if (canvases.length === 0) {
+                        printBody.innerHTML = '<p>No charts available to print.</p>';
+                        setTimeout(() => {
+                            printWindow.print();
+                            NotificationService.showSuccess('Print dialog opened!');
+                        }, 500);
+                        return;
+                    }
+                    
+                    // Process each chart
+                    canvases.forEach((canvas, index) => {
+                        const chartContainer = printWindow.document.createElement('div');
+                        chartContainer.className = 'chart-container';
+                        
+                        // Get chart title from the closest chart container
+                        const chartParent = canvas.closest('.chart-container') || canvas.parentElement;
+                        const titleElement = chartParent.querySelector('.chart-title, h6, .fw-bold');
+                        const chartTitle = titleElement ? titleElement.textContent : `Chart ${index + 1}`;
+                        
+                        // Create title
+                        const title = printWindow.document.createElement('div');
+                        title.className = 'chart-title';
+                        title.textContent = chartTitle;
+                        
+                        // Convert canvas to image
+                        const img = printWindow.document.createElement('img');
+                        img.src = canvas.toDataURL('image/png');
+                        img.className = 'chart-image';
+                        img.alt = chartTitle;
+                        
+                        chartContainer.appendChild(title);
+                        chartContainer.appendChild(img);
+                        printBody.appendChild(chartContainer);
+                    });
+                    
+                    setTimeout(() => {
+                        printWindow.print();
+                        NotificationService.showSuccess('Charts ready for print!');
+                    }, 1000);
+                };
+            }
+        };
+
+        // Event listeners for statistics
+        document.addEventListener('DOMContentLoaded', function() {
+            // Time period change handlers
+            document.querySelectorAll('input[name="timePeriod"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    if (document.getElementById('statisticsModal').classList.contains('show')) {
+                        StatisticsManager.loadStatistics();
+                    }
+                });
+            });
+        });
+
+        // Global function declarations for HTML onclick handlers
+        function openStatisticsModal() { StatisticsManager.openModal(); }
+        function refreshStatistics() { StatisticsManager.refresh(); }
+        function printStatistics() { StatisticsManager.printData(); }
     </script>
 </body>
 

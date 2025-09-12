@@ -518,4 +518,20 @@ class ProductController extends BaseController
             return $this->response->setJSON(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
         }
     }
+
+    // Statistics endpoint
+    public function statistics()
+    {
+        if (!$this->isAuthenticated()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Authentication required']);
+        }
+
+        try {
+            $period = $this->request->getGet('period') ?? 'daily';
+            $statisticsData = $this->productModel->getStatistics($period);
+            return $this->response->setJSON(['success' => true, 'data' => $statisticsData]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+        }
+    }
 }

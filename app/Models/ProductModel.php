@@ -149,4 +149,130 @@ class ProductModel extends Model
     {
         return $this->where('status', 'deleted')->paginate($perPage);
     }
+
+    // Get statistics for dashboard
+    public function getStatistics($period = 'daily')
+    {
+        $db = \Config\Database::connect();
+        $now = new \DateTime();
+        
+        // Get summary statistics
+        $totalProducts = $this->where('status', 'active')->countAllResults(false);
+        
+        // Calculate total price
+        $totalPriceQuery = $db->query("SELECT SUM(price) as total_price FROM {$this->table} WHERE status = 'active'");
+        $totalPrice = $totalPriceQuery->getRow()->total_price ?? 0;
+        
+        // Get products created/updated today
+        $today = $now->format('Y-m-d');
+        $productsAddedToday = $db->query("SELECT COUNT(*) as count FROM {$this->table} WHERE DATE(created_at) = ? AND status = 'active'", [$today])->getRow()->count;
+        $productsUpdatedToday = $db->query("SELECT COUNT(*) as count FROM {$this->table} WHERE DATE(updated_at) = ? AND DATE(updated_at) != DATE(created_at) AND status = 'active'", [$today])->getRow()->count;
+        
+        // Generate chart data based on period
+        $chartData = $this->generateChartData($period, $db);
+        
+        // Get price distribution
+        $priceDistribution = $this->getPriceDistribution($db);
+        
+        return [
+            'summary' => [
+                'totalProducts' => (int)$totalProducts,
+                'productsAdded' => (int)$productsAddedToday,
+                'productsUpdated' => (int)$productsUpdatedToday,
+                'totalPrice' => round($totalPrice, 2)
+            ],
+            'chartData' => $chartData,
+            'priceDistribution' => $priceDistribution
+        ];
+    }
+
+    private function generateChartData($period, $db)
+    {
+        $now = new \DateTime();
+        $labels = [];
+        $data = [];
+        
+        if ($period === 'daily') {
+            // Last 7 days
+            for ($i = 6; $i >= 0; $i--) {
+                $date = clone $now;
+                $date->sub(new \DateInterval("P{$i}D"));
+                $dateStr = $date->format('Y-m-d');
+                
+                $labels[] = $date->format('M j');
+                
+                $count = $db->query("SELECT COUNT(*) as count FROM {$this->table} WHERE DATE(created_at) = ? AND status = 'active'", [$dateStr])->getRow()->count;
+                $data[] = (int)$count;
+            }
+        } elseif ($period === 'weekly') {
+            // Last 8 weeks
+            for ($i = 7; $i >= 0; $i--) {
+                $date = clone $now;
+                $date->sub(new \DateInterval("P{$i}W"));
+                
+                $weekStart = $date->format('Y-m-d');
+                $weekEnd = $date->add(new \DateInterval('P6D'))->format('Y-m-d');
+                
+                $labels[] = "Week " . $date->format('W');
+                
+                $count = $db->query("SELECT COUNT(*) as count FROM {$this->table} WHERE DATE(created_at) BETWEEN ? AND ? AND status = 'active'", [$weekStart, $weekEnd])->getRow()->count;
+                $data[] = (int)$count;
+            }
+        } else { // monthly
+            // Last 6 months
+            for ($i = 5; $i >= 0; $i--) {
+                $date = clone $now;
+                $date->sub(new \DateInterval("P{$i}M"));
+                
+                $monthStart = $date->format('Y-m-01');
+                $monthEnd = $date->format('Y-m-t');
+                
+                $labels[] = $date->format('M Y');
+                
+                $count = $db->query("SELECT COUNT(*) as count FROM {$this->table} WHERE DATE(created_at) BETWEEN ? AND ? AND status = 'active'", [$monthStart, $monthEnd])->getRow()->count;
+                $data[] = (int)$count;
+            }
+        }
+        
+        return [
+            'labels' => $labels,
+            'datasets' => [[
+                'label' => 'Products Created',
+                'data' => $data,
+                'backgroundColor' => 'rgba(0, 0, 0, 0.1)',
+                'borderColor' => 'rgba(0, 0, 0, 0.8)',
+                'borderWidth' => 2,
+                'fill' => true,
+                'tension' => 0.4
+            ]]
+        ];
+    }
+
+    private function getPriceDistribution($db)
+    {
+        $ranges = [
+            '₱0-500' => [0, 500],
+            '₱501-1000' => [501, 1000],
+            '₱1001-5000' => [1001, 5000],
+            '₱5001+' => [5001, 999999999]
+        ];
+        
+        $data = [];
+        $labels = [];
+        
+        foreach ($ranges as $label => $range) {
+            $labels[] = $label;
+            if ($range[1] === 999999999) {
+                $count = $db->query("SELECT COUNT(*) as count FROM {$this->table} WHERE price >= ? AND status = 'active'", [$range[0]])->getRow()->count;
+            } else {
+                $count = $db->query("SELECT COUNT(*) as count FROM {$this->table} WHERE price BETWEEN ? AND ? AND status = 'active'", [$range[0], $range[1]])->getRow()->count;
+            }
+            $data[] = (int)$count;
+        }
+        
+        return [
+            'labels' => $labels,
+            'data' => $data
+        ];
+    }
 }

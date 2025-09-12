@@ -34,6 +34,9 @@ $routes->post('products/bulk-delete', 'ProductController::bulkDelete');
 $routes->post('products/bulk-restore', 'ProductController::bulkRestore');
 $routes->post('products/bulk-permanent-delete', 'ProductController::bulkPermanentDelete');
 
+// Statistics route
+$routes->get('api/statistics', 'ProductController::statistics');
+
 // Optional: Keep original home and lecture routes for reference
 $routes->get('home', 'Home::index');
 $routes->get('lecture', 'Home::lectureNotes');
