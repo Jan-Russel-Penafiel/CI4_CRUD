@@ -87,7 +87,8 @@
             padding: .6rem;
             border-radius: 8px;
             margin-bottom: 1rem;
-            border: 2px solid var(--border-color)
+            border: 2px solid var(--border-color);
+            transition: all 0.2s ease-in-out
         }
 
         .card {
@@ -165,7 +166,8 @@
         }
 
         .form-control {
-            font-size: .75rem
+            font-size: .75rem;
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out
         }
 
         .form-text {
@@ -711,6 +713,44 @@
         .toast.hiding {
             animation: slideOutBottom .3s ease-in
         }
+
+        /* Search optimization styles */
+        #productsTableContainer {
+            transition: opacity 0.2s ease-in-out;
+            min-height: 200px
+        }
+
+        .search-loading {
+            position: relative
+        }
+
+        .search-loading::after {
+            content: '';
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite
+        }
+
+        @keyframes spin {
+            0% { transform: translateY(-50%) rotate(0deg) }
+            100% { transform: translateY(-50%) rotate(360deg) }
+        }
+
+        .table-container-smooth {
+            transition: all 0.3s ease-in-out
+        }
+
+        .search-state-active {
+            border-color: #007bff !important;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important
+        }
     </style>
 </head>
 
@@ -1013,7 +1053,10 @@
             isUserInteracting: false,
             currentRestoreId: null,
             currentPermanentDeleteId: null,
-            tooltipInitTimeout: null
+            tooltipInitTimeout: null,
+            lastSearchQuery: '',
+            searchRequestId: 0,
+            isSearching: false
         };
 
         // Real-time Update Configuration
@@ -1023,7 +1066,7 @@
             lastUpdateTime: new Date().getTime(),
             connectionRetryCount: 0,
             maxRetryAttempts: 5,
-            updateCheckInterval: 1000
+            updateCheckInterval: 2000
         };
 
         // Toast Notification Configuration
@@ -1303,11 +1346,18 @@
                 
                 this.clearError();
                 
+                // Skip validation and search if query is the same as last search
+                if (query === AppState.lastSearchQuery) {
+                    return;
+                }
+                
                 if (query.length > 0 && !this.validateInput(query)) {
                     return;
                 }
                 
-                AppState.searchTimeout = setTimeout(() => this.performSearch(query), 500);
+                // Use longer debounce for typing, shorter for clearing
+                const debounceTime = query.length === 0 ? 200 : 800;
+                AppState.searchTimeout = setTimeout(() => this.performSearch(query), debounceTime);
             },
 
             handleKeydown(e) {
@@ -1353,13 +1403,21 @@
             },
 
             performSearch(query, page = 1) {
-                if (AppState.isLoading) return;
+                // Prevent duplicate searches and rapid firing
+                if (AppState.isSearching || query === AppState.lastSearchQuery) {
+                    return;
+                }
                 
-                NotificationService.showLoading(query.length > 0 ? 'Searching...' : 'Loading all products...');
-                UIHelper.setLoading(true);
+                // Generate unique request ID to handle race conditions
+                const requestId = ++AppState.searchRequestId;
+                AppState.isSearching = true;
+                AppState.lastSearchQuery = query;
 
                 const selectedIds = SelectionManager.getSelectedIds('main');
                 const selectAllState = SelectionManager.getSelectAllState('main');
+
+                // Show subtle loading indicator instead of aggressive one
+                this.showSubtleLoading(query);
 
                 const url = this.buildSearchURL(query, page);
 
@@ -1370,10 +1428,30 @@
                         'Accept': 'application/json'
                     }
                 })
-                .then(response => response.ok ? response.text() : Promise.reject('Network error'))
-                .then(html => this.handleSearchSuccess(html, query, page, selectedIds, selectAllState))
-                .catch(error => this.handleSearchError(error))
-                .finally(() => UIHelper.setLoading(false));
+                .then(response => {
+                    // Check if this is still the latest request
+                    if (requestId !== AppState.searchRequestId) {
+                        return Promise.reject('Request superseded');
+                    }
+                    return response.ok ? response.text() : Promise.reject('Network error');
+                })
+                .then(html => {
+                    // Final check before updating UI
+                    if (requestId === AppState.searchRequestId) {
+                        this.handleSearchSuccess(html, query, page, selectedIds, selectAllState);
+                    }
+                })
+                .catch(error => {
+                    if (requestId === AppState.searchRequestId) {
+                        this.handleSearchError(error);
+                    }
+                })
+                .finally(() => {
+                    if (requestId === AppState.searchRequestId) {
+                        AppState.isSearching = false;
+                        this.hideSubtleLoading();
+                    }
+                });
             },
 
             buildSearchURL(query, page) {
@@ -1387,27 +1465,81 @@
                 const temp = document.createElement('div');
                 temp.innerHTML = html;
                 
-                TooltipManager.disposeAll();
-                this.updateUI(temp, query, page);
+                // Only dispose tooltips if content actually changed
+                if (this.contentChanged(temp)) {
+                    TooltipManager.disposeAll();
+                    this.updateUISmooth(temp, query, page);
+                    TooltipManager.initialize();
+                } else {
+                    // Content is the same, just update state
+                    AppState.currentSearch = query;
+                    AppState.currentPage = page;
+                }
+                
                 this.restoreSelections(selectedIds, selectAllState);
                 this.updateHistory(query);
-                
-                TooltipManager.initialize();
-                NotificationService.hideLoading();
             },
 
-            updateUI(tempDiv, query, page) {
-                const newTable = tempDiv.querySelector('#productsTableContainer');
-                if (newTable) {
-                    document.getElementById('productsTableContainer').innerHTML = newTable.innerHTML;
-                }
+            updateUISmooth(tempDiv, query, page) {
+                // Fade out current content slightly for smooth transition
+                const container = document.getElementById('productsTableContainer');
+                container.style.transition = 'opacity 0.2s ease-in-out';
+                container.style.opacity = '0.7';
 
-                this.updatePagination(tempDiv);
-                this.updateProductCount(tempDiv);
-                this.updateSearchResults(query, tempDiv);
+                // Update content after brief delay to ensure smooth transition
+                setTimeout(() => {
+                    const newTable = tempDiv.querySelector('#productsTableContainer');
+                    if (newTable) {
+                        container.innerHTML = newTable.innerHTML;
+                    }
+
+                    this.updatePagination(tempDiv);
+                    this.updateProductCount(tempDiv);
+                    this.updateSearchResults(query, tempDiv);
+                    
+                    // Fade content back in
+                    container.style.opacity = '1';
+                    
+                    AppState.currentSearch = query;
+                    AppState.currentPage = page;
+                }, 100);
+            },
+
+            contentChanged(tempDiv) {
+                const currentTable = document.getElementById('productsTableContainer');
+                const newTable = tempDiv.querySelector('#productsTableContainer');
                 
-                AppState.currentSearch = query;
-                AppState.currentPage = page;
+                if (!currentTable || !newTable) return true;
+                
+                // Simple content comparison to avoid unnecessary DOM updates
+                return currentTable.innerHTML.trim() !== newTable.innerHTML.trim();
+            },
+
+            showSubtleLoading(query) {
+                // Show subtle search indicator instead of aggressive loading
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) {
+                    searchInput.style.borderColor = '#007bff';
+                    searchInput.style.boxShadow = '0 0 0 0.2rem rgba(0, 123, 255, 0.25)';
+                }
+                
+                // Only show toast for longer searches
+                if (query.length > 3) {
+                    setTimeout(() => {
+                        if (AppState.isSearching) {
+                            NotificationService.showLoading('Searching...');
+                        }
+                    }, 500);
+                }
+            },
+
+            hideSubtleLoading() {
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) {
+                    searchInput.style.borderColor = '';
+                    searchInput.style.boxShadow = '';
+                }
+                NotificationService.hideLoading();
             },
 
             updatePagination(tempDiv) {
@@ -1415,7 +1547,14 @@
                 const currentPag = document.querySelector('.mt-4');
                 
                 if (newPag && currentPag) {
-                    currentPag.innerHTML = newPag.innerHTML;
+                    // Only update if content actually changed
+                    if (currentPag.innerHTML !== newPag.innerHTML) {
+                        currentPag.style.opacity = '0.7';
+                        setTimeout(() => {
+                            currentPag.innerHTML = newPag.innerHTML;
+                            currentPag.style.opacity = '1';
+                        }, 50);
+                    }
                 }
             },
 
@@ -1423,15 +1562,32 @@
                 const element = tempDiv.querySelector('#productCountText');
                 const targetElement = document.getElementById('productCountText');
                 if (element && targetElement) {
-                    targetElement.innerHTML = element.innerHTML;
+                    // Only update if content actually changed
+                    if (targetElement.innerHTML !== element.innerHTML) {
+                        targetElement.style.transition = 'opacity 0.2s ease-in-out';
+                        targetElement.style.opacity = '0.7';
+                        setTimeout(() => {
+                            targetElement.innerHTML = element.innerHTML;
+                            targetElement.style.opacity = '1';
+                        }, 50);
+                    }
                 }
             },
 
             updateSearchResults(query, tempDiv) {
-                if (query.length > 0) {
+                if (query.length > 2) { // Only show for meaningful searches
                     const count = tempDiv.querySelectorAll('tbody tr').length;
-                    const message = `Search completed for "${query}"${count > 0 ? ` - Found ${count} product(s).` : ' - No products found.'}`;
-                    NotificationService.showInfo(message);
+                    // Only show notification if search took more than 1 second or returned no results
+                    if (count === 0) {
+                        NotificationService.showInfo(`No products found for "${query}"`);
+                    } else if (count > 0 && query.length > 5) {
+                        // Only show success message for longer queries to avoid spam
+                        setTimeout(() => {
+                            if (!AppState.isSearching) { // Make sure search is still complete
+                                NotificationService.showInfo(`Found ${count} product(s) for "${query}"`);
+                            }
+                        }, 300);
+                    }
                 }
             },
 
@@ -1463,8 +1619,22 @@
 
             handleSearchError(error) {
                 console.error('Search error:', error);
-                NotificationService.hideLoading();
-                NotificationService.showError('Error loading products. Please try again.');
+                
+                // Don't show error for superseded requests
+                if (error === 'Request superseded') {
+                    return;
+                }
+                
+                // Reset search state
+                AppState.isSearching = false;
+                AppState.lastSearchQuery = '';
+                
+                this.hideSubtleLoading();
+                
+                // Only show error for actual network/server errors
+                if (error !== 'Network error') {
+                    NotificationService.showError('Error loading products. Please try again.');
+                }
             },
 
             clear() {
@@ -1472,8 +1642,17 @@
                 if (searchInput) {
                     searchInput.value = '';
                     this.clearError();
+                    this.resetSearchState();
                     this.performSearch('');
                 }
+            },
+
+            resetSearchState() {
+                clearTimeout(AppState.searchTimeout);
+                AppState.isSearching = false;
+                AppState.lastSearchQuery = '';
+                AppState.searchRequestId++;
+                this.hideSubtleLoading();
             }
         };
 
@@ -1607,7 +1786,8 @@
             },
 
             checkForUpdates() {
-                if (AppState.isUserInteracting) return;
+                // Don't update if user is interacting or actively searching
+                if (AppState.isUserInteracting || AppState.isSearching) return;
                 
                 // Additional safety check for DOM elements
                 if (!this.validateDOMElements()) {
