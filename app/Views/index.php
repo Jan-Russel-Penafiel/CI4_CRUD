@@ -954,7 +954,7 @@
 
 <body>
     <div class="status-indicator" id="statusIndicator"><i class="fas fa-sync-alt me-1"></i><span id="statusText">Checking for updates...</span></div>
-    <div class="toast-container position-fixed bottom-0 end-0 p-2" style="z-index:9999;"></div>
+    <div class="toast-container position-fixed bottom-0 start-0 p-2" style="z-index:9999;"></div>
     <div class="header">
         <div class="container">
             <div class="row align-items-center">
