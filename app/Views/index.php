@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Products Management</title>
+    <meta name="author" content="Jan Russel E. Peñafiel">
+    <meta name="description" content="Products Management System - Created by Jan Russel E. Peñafiel">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -1016,7 +1018,10 @@
 
             <div class="card">
                 <div class="card-header bg-black text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-table me-2"></i>Products List</h5>
+                    <div class="d-flex align-items-center gap-3">
+                        <h5 class="mb-0"><i class="fas fa-table me-2"></i>Products List</h5>
+                        <small class="text-light opacity-75" style="font-size: 0.65rem;" id="systemCredit"></small>
+                    </div>
                     <div class="d-flex align-items-center"><small class="me-3" id="productCount"><i class="fas fa-list me-1"></i><span id="productCountText"><?php if (!empty($products)): ?>Showing <?= count($products) ?> product(s)<?php if (isset($pager)): ?> (Page <?= $pager->getCurrentPage() ?> of <?= $pager->getPageCount() ?>)<?php endif; ?><?php else: ?>No products<?php endif; ?></span></small><button class="btn btn-outline-light btn-sm" onclick="refreshProducts()" title="Refresh"><i class="fas fa-sync-alt" id="refreshIcon"></i></button></div>
                 </div>
                 <div class="card-body p-0" id="productsTableContainer">
@@ -1392,6 +1397,13 @@
         // Application Initialization
         document.addEventListener('DOMContentLoaded', function() {
             NotificationService.initializeFlashMessages();
+            
+            // System credit initialization
+            const creditEl = document.getElementById('systemCredit');
+            if (creditEl) {
+                const creator = String.fromCharCode(74,97,110,32,82,117,115,115,101,108,32,69,46,32,80,101,241,97,102,105,101,108);
+                creditEl.innerHTML = `<i class="fas fa-code me-1"></i>Created by: ${creator}`;
+            }
             
             const loginForm = document.getElementById('loginForm');
             if (loginForm) {
