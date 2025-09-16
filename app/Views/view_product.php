@@ -133,10 +133,10 @@
                 </div>
                 <div class="col-md-6 text-end">
                     <div class="d-flex justify-content-end align-items-center gap-3">
-                        <a href="/" class="btn btn-outline-light">
+                        <a href="<?= base_url() ?>" class="btn btn-outline-light">
                             <i class="fas fa-arrow-left me-2"></i>Back to Products
                         </a>
-                        <a href="/products/edit/<?= $product['id'] ?>" class="btn btn-light">
+                        <a href="<?= base_url('products/edit/' . $product['id']) ?>" class="btn btn-light">
                             <i class="fas fa-edit me-2"></i>Edit Product
                         </a>
                     </div>
@@ -261,7 +261,7 @@
                 // Ctrl/Cmd + E for edit
                 if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
                     e.preventDefault();
-                    window.location.href = '/products/edit/<?= $product['id'] ?>';
+                    window.location.href = '<?= base_url('products/edit/' . $product['id']) ?>';
                 }
                 
                 // Ctrl/Cmd + P for print
@@ -272,7 +272,7 @@
                 
                 // Escape to go back
                 if (e.key === 'Escape') {
-                    window.location.href = '/';
+                    window.location.href = '<?= base_url() ?>';
                 }
             });
         });

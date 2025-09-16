@@ -963,7 +963,7 @@
                     <p class="mb-0 mt-2">Complete CRUD Operations System</p>
                 </div>
                 <div class="col-md-6 text-end"><?php if (isset($show_login) && $show_login): ?><span class="btn btn-outline-light btn-lg" disabled><i class="fas fa-lock me-2"></i>Login Required</span><?php else: ?><div class="d-flex justify-content-end align-items-center gap-3"><small class="text-light"><i class="fas fa-user me-1"></i>Welcome, Admin!</small>
-                            <div class="auto-refresh-indicator" id="autoRefreshStatus" title="Auto-sync is always enabled"><i class="fas fa-circle me-1"></i><span id="autoRefreshText">Auto-sync ON</span></div><a href="#" onclick="openStatisticsModal()" class="btn btn-outline-light"><i class="fas fa-chart-bar me-2"></i>Statistics</a><a href="#" onclick="openTrashModal()" class="btn btn-outline-light"><i class="fas fa-trash me-2"></i>Trash</a><a href="/logout" class="btn btn-outline-light"><i class="fas fa-sign-out-alt me-2"></i>Logout</a>
+                            <div class="auto-refresh-indicator" id="autoRefreshStatus" title="Auto-sync is always enabled"><i class="fas fa-circle me-1"></i><span id="autoRefreshText">Auto-sync ON</span></div><a href="#" onclick="openStatisticsModal()" class="btn btn-outline-light"><i class="fas fa-chart-bar me-2"></i>Statistics</a><a href="#" onclick="openTrashModal()" class="btn btn-outline-light"><i class="fas fa-trash me-2"></i>Trash</a><a href="<?= base_url('logout') ?>" class="btn btn-outline-light"><i class="fas fa-sign-out-alt me-2"></i>Logout</a>
                         </div><?php endif; ?></div>
             </div>
         </div>
@@ -978,7 +978,7 @@
                             <h4 class="mb-1"><i class="fas fa-shield-alt me-2"></i>Admin Portal</h4><small>Secure access required</small>
                         </div>
                         <div class="card-body p-4">
-                            <form action="/login" method="post" id="loginForm">
+                            <form action="<?= base_url('login') ?>" method="post" id="loginForm">
                                 <div class="mb-3"><label for="username" class="form-label"><i class="fas fa-user me-1"></i>Username</label><input type="text" class="form-control" id="username" name="username" placeholder="Enter your username" required maxlength="50" autocomplete="username" value=""></div>
                                 <div class="mb-4"><label for="password" class="form-label"><i class="fas fa-key me-1"></i>Password</label><input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required maxlength="100" autocomplete="current-password"></div>
                                 <div class="d-grid"><button type="submit" class="btn btn-black btn-lg"><i class="fas fa-sign-in-alt me-2"></i>Access System</button></div>
@@ -1010,7 +1010,7 @@
                             </button>
                         </div>
                     </div>
-                    <div class="col-md-2"><?php if (!empty($search)): ?><button type="button" class="btn btn-outline-black w-100" onclick="clearSearch()"><i class="fas fa-times me-2"></i>Clear</button><?php else: ?><a href="/products/create" class="btn btn-black w-100"><i class="fas fa-plus me-2"></i>Add Product</a><?php endif; ?></div>
+                    <div class="col-md-2"><?php if (!empty($search)): ?><button type="button" class="btn btn-outline-black w-100" onclick="clearSearch()"><i class="fas fa-times me-2"></i>Clear</button><?php else: ?><a href="<?= base_url('products/create') ?>" class="btn btn-black w-100"><i class="fas fa-plus me-2"></i>Add Product</a><?php endif; ?></div>
                 </div>
             </div>
 
@@ -1033,7 +1033,7 @@
                     <?php elseif (empty($products)): ?>
                         <div class="text-center py-5"><i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                             <h4>No Products Found</h4><?php if (!empty($search)): ?><p class="text-muted">No products match your search criteria "<?= esc($search) ?>".</p>
-                                <div class="d-flex justify-content-center gap-2"><a href="/" class="btn btn-outline-black"><i class="fas fa-list me-2"></i>View All Products</a><a href="/products/create" class="btn btn-black"><i class="fas fa-plus me-2"></i>Add Product</a></div><?php else: ?><p class="text-muted">Start by adding your first product!</p><a href="/products/create" class="btn btn-black"><i class="fas fa-plus me-2"></i>Add Product</a><?php endif; ?>
+                                <div class="d-flex justify-content-center gap-2"><a href="<?= base_url() ?>" class="btn btn-outline-black"><i class="fas fa-list me-2"></i>View All Products</a><a href="<?= base_url('products/create') ?>" class="btn btn-black"><i class="fas fa-plus me-2"></i>Add Product</a></div><?php else: ?><p class="text-muted">Start by adding your first product!</p><a href="<?= base_url('products/create') ?>" class="btn btn-black"><i class="fas fa-plus me-2"></i>Add Product</a><?php endif; ?>
                         </div>
                     <?php else: ?>
                         <div class="table-responsive">
@@ -1214,7 +1214,7 @@
                     <p>Are you sure you want to move the product "<span id="deleteProductName"></span>" to trash?</p>
                     <p class="text-muted">The product will be moved to trash and can be restored later if needed.</p>
                 </div>
-                <div class="modal-footer"><button type="button" class="btn btn-outline-black" data-bs-dismiss="modal">Cancel</button><a href="#" id="confirmDeleteBtn" class="btn btn-warning"><i class="fas fa-trash me-2"></i>Move to Trash</a></div>
+                <div class="modal-footer"><button type="button" class="btn btn-outline-black" data-bs-dismiss="modal">Cancel</button><a href="<?= base_url('products/delete/') ?>" id="confirmDeleteBtn" class="btn btn-warning"><i class="fas fa-trash me-2"></i>Move to Trash</a></div>
             </div>
         </div>
     </div>
@@ -1353,6 +1353,9 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        // Base URL configuration
+        const BASE_URL = '<?= base_url() ?>';
+        
         // Application State Management
         const AppState = {
             isLoading: false,
@@ -1766,7 +1769,7 @@
             },
 
             buildSearchURL(query, page) {
-                const url = new URL(window.location.origin + '/');
+                const url = new URL(BASE_URL);
                 if (query.length > 0) url.searchParams.set('search', query);
                 if (page > 1) url.searchParams.set('page', page);
                 return url;
@@ -1924,7 +1927,7 @@
             },
 
             updateHistory(query) {
-                const newUrl = query.length > 0 ? `/?search=${encodeURIComponent(query)}` : '/';
+                const newUrl = query.length > 0 ? `${BASE_URL}?search=${encodeURIComponent(query)}` : BASE_URL;
                 window.history.pushState({ search: query, page: AppState.currentPage }, '', newUrl);
             },
 
@@ -2135,7 +2138,7 @@
             },
 
             buildUpdateCheckURL(searchValue, currentPageParam) {
-                const url = new URL(window.location.origin + '/');
+                const url = new URL(BASE_URL);
                 if (searchValue.length > 0) url.searchParams.set('search', searchValue);
                 if (currentPageParam !== '1') url.searchParams.set('page', currentPageParam);
                 return url;
@@ -2272,16 +2275,16 @@
                 // Redirect to login page
                 setTimeout(() => {
                     // First try common login routes
-                    const loginRoutes = ['/login', '/auth/login', '/?login=1'];
+                    const loginRoutes = ['login', 'auth/login', '?login=1'];
                     
                     // Try the first route, others as fallback
                     try {
-                        console.log('Attempting redirect to:', window.location.origin + loginRoutes[0]);
-                        window.location.href = window.location.origin + loginRoutes[0];
+                        console.log('Attempting redirect to:', BASE_URL + loginRoutes[0]);
+                        window.location.href = BASE_URL + loginRoutes[0];
                     } catch (error) {
-                        console.log('Fallback redirect to:', window.location.origin + '/?login=1');
+                        console.log('Fallback redirect to:', BASE_URL + '?login=1');
                         // Fallback: reload page with login parameter
-                        window.location.href = window.location.origin + '/?login=1';
+                        window.location.href = BASE_URL + '?login=1';
                     }
                 }, 1000);
             },
@@ -2527,13 +2530,13 @@
             view(id) {
                 if (!this.validateId(id)) return;
                 TooltipManager.disposeAll();
-                window.location.href = '/products/view/' + id;
+                window.location.href = BASE_URL + 'products/view/' + id;
             },
 
             edit(id) {
                 if (!this.validateId(id)) return;
                 TooltipManager.disposeAll();
-                window.location.href = '/products/edit/' + id;
+                window.location.href = BASE_URL + 'products/edit/' + id;
             },
 
             delete(id, name) {
@@ -2543,7 +2546,7 @@
                 
                 try {
                     document.getElementById('deleteProductName').textContent = productName;
-                    document.getElementById('confirmDeleteBtn').href = '/products/delete/' + id;
+                    document.getElementById('confirmDeleteBtn').href = BASE_URL + 'products/delete/' + id;
                     new bootstrap.Modal(document.getElementById('deleteModal')).show();
                 } catch (error) {
                     console.error('Error showing delete modal:', error);
@@ -2809,7 +2812,7 @@
                 
                 body.innerHTML = this.getLoadingHTML();
 
-                fetch('/trash', {
+                fetch(BASE_URL + 'trash', {
                     method: 'GET',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
@@ -3153,18 +3156,18 @@
 
             // Confirmation functions
             confirmBulkDelete() {
-                this.executeBulkOperation('main', '/products/bulk-delete', 'Moving to trash...', 'moving', 'delete');
+                this.executeBulkOperation('main', BASE_URL + 'products/bulk-delete', 'Moving to trash...', 'moving', 'delete');
             },
 
             confirmBulkRestore() {
-                this.executeBulkOperation('trash', '/products/bulk-restore', 'Restoring...', 'restoring', 'restore', () => {
+                this.executeBulkOperation('trash', BASE_URL + 'products/bulk-restore', 'Restoring...', 'restoring', 'restore', () => {
                     TrashManager.loadData();
                     UtilityFunctions.refreshProducts();
                 });
             },
 
             confirmBulkPermanentDelete() {
-                this.executeBulkOperation('trash', '/products/bulk-permanent-delete', 'Deleting...', 'permanently deleting', 'permanent-delete', () => {
+                this.executeBulkOperation('trash', BASE_URL + 'products/bulk-permanent-delete', 'Deleting...', 'permanently deleting', 'permanent-delete', () => {
                     TrashManager.loadData();
                 });
             },
@@ -3181,7 +3184,7 @@
                 this.hideNestedPanel('nestedBulkRestorePanel');
                 NotificationService.showLoading(`Restoring ${selectedIds.length} product(s)...`);
                 
-                this.performBulkRequest('/products/bulk-restore', selectedIds)
+                this.performBulkRequest(BASE_URL + 'products/bulk-restore', selectedIds)
                     .then(data => this.handleBulkSuccess(data, 'restore', () => {
                         TrashManager.loadData();
                         UtilityFunctions.refreshProducts();
@@ -3201,7 +3204,7 @@
                 this.hideNestedPanel('nestedBulkPermanentDeletePanel');
                 NotificationService.showLoading(`Permanently deleting ${selectedIds.length} product(s)...`);
                 
-                this.performBulkRequest('/products/bulk-permanent-delete', selectedIds)
+                this.performBulkRequest(BASE_URL + 'products/bulk-permanent-delete', selectedIds)
                     .then(data => this.handleBulkSuccess(data, 'permanent-delete', () => TrashManager.loadData()))
                     .catch(error => this.handleBulkError(error, 'permanently deleting'))
                     .finally(() => TrashManager.resetButton(btn, originalText));
@@ -3701,12 +3704,35 @@
 
             async fetchStatisticsData() {
                 try {
-                    const response = await fetch(`/api/statistics?period=${this.currentPeriod}`);
+                    // Use the correct base URL with index.php for CodeIgniter
+                    const baseUrl = window.location.protocol + '//' + window.location.host + window.location.pathname.replace(/\/[^\/]*$/, '');
+                    const url = `${baseUrl}/index.php/api/statistics?period=${this.currentPeriod}`;
+                    
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        credentials: 'same-origin' // Include cookies for session authentication
+                    });
+                    
+                    if (!response.ok) {
+                        if (response.status === 401) {
+                            throw new Error('Authentication required. Please login first.');
+                        }
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
                     const result = await response.json();
                     
                     if (result.success) {
                         return result.data;
                     } else {
+                        // Handle specific error codes
+                        if (result.error === 'UNAUTHENTICATED') {
+                            throw new Error('Please login to view statistics.');
+                        }
                         throw new Error(result.message || 'Failed to fetch statistics');
                     }
                 } catch (error) {

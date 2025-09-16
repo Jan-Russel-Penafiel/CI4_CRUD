@@ -59,7 +59,7 @@
         <div class="step">
             <h3>Step 3: Configure Environment</h3>
             <p>Rename <code>env</code> to <code>.env</code> and set your baseURL:</p>
-            <div class="code"> app.baseURL = 'http:localhost:8080/</div>
+            <div class="code"> app.baseURL = '<?= base_url() ?>'</div>
         </div>
 
          <div class="step">

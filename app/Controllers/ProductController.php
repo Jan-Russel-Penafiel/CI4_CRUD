@@ -52,7 +52,7 @@ class ProductController extends BaseController
     {
         if (!$this->isAuthenticated()) {
             $this->session->setFlashdata('error', 'Please login to access this page.');
-            return redirect()->to('/');
+            return redirect()->to(base_url());
         }
         
         $data['validation'] = \Config\Services::validation();
@@ -63,7 +63,7 @@ class ProductController extends BaseController
     {
         if (!$this->isAuthenticated()) {
             $this->session->setFlashdata('error', 'Please login to access this page.');
-            return redirect()->to('/');
+            return redirect()->to(base_url());
         }
         
         $validationRules = [
@@ -102,21 +102,21 @@ class ProductController extends BaseController
             $this->session->setFlashdata('error', 'Database error: ' . $e->getMessage());
         }
         
-        return redirect()->to('/');
+        return redirect()->to(base_url());
     }
     
     public function edit($id)
     {
         if (!$this->isAuthenticated()) {
             $this->session->setFlashdata('error', 'Please login to access this page.');
-            return redirect()->to('/');
+            return redirect()->to(base_url());
         }
         
         $product = $this->productModel->getProduct($id);
         
         if (!$product) {
             $this->session->setFlashdata('error', 'Product not found.');
-            return redirect()->to('/');
+            return redirect()->to(base_url());
         }
         
         $data['product'] = $product;
@@ -129,14 +129,14 @@ class ProductController extends BaseController
     {
         if (!$this->isAuthenticated()) {
             $this->session->setFlashdata('error', 'Please login to access this page.');
-            return redirect()->to('/');
+            return redirect()->to(base_url());
         }
         
         $product = $this->productModel->getProduct($id);
         
         if (!$product) {
             $this->session->setFlashdata('error', 'Product not found.');
-            return redirect()->to('/products');
+            return redirect()->to(base_url('products'));
         }
         
         $validationRules = [
@@ -176,21 +176,21 @@ class ProductController extends BaseController
             $this->session->setFlashdata('error', 'Database error: ' . $e->getMessage());
         }
         
-        return redirect()->to('/');
+        return redirect()->to(base_url());
     }
     
     public function delete($id)
     {
         if (!$this->isAuthenticated()) {
             $this->session->setFlashdata('error', 'Please login to access this page.');
-            return redirect()->to('/');
+            return redirect()->to(base_url());
         }
         
         $product = $this->productModel->getProduct($id);
         
         if (!$product) {
             $this->session->setFlashdata('error', 'Product not found.');
-            return redirect()->to('/');
+            return redirect()->to(base_url());
         }
         
         try {
@@ -203,7 +203,7 @@ class ProductController extends BaseController
             $this->session->setFlashdata('error', 'Database error: ' . $e->getMessage());
         }
         
-        return redirect()->to('/');
+        return redirect()->to(base_url());
     }
     
     // View trash (deleted products)
@@ -214,7 +214,7 @@ class ProductController extends BaseController
                 return $this->response->setJSON(['error' => 'Authentication required']);
             }
             $this->session->setFlashdata('error', 'Please login to access this page.');
-            return redirect()->to('/');
+            return redirect()->to(base_url());
         }
         
         $pager = \Config\Services::pager();
@@ -242,7 +242,7 @@ class ProductController extends BaseController
                 return $this->response->setJSON(['error' => 'Authentication required']);
             }
             $this->session->setFlashdata('error', 'Please login to access this page.');
-            return redirect()->to('/');
+            return redirect()->to(base_url());
         }
         
         try {
@@ -270,7 +270,7 @@ class ProductController extends BaseController
         if ($this->request->isAJAX()) {
             return $this->response->setJSON(['success' => false, 'message' => 'Unknown error occurred']);
         }
-        return redirect()->to('/trash');
+        return redirect()->to(base_url('trash'));
     }
     
     // Permanently delete product
@@ -281,7 +281,7 @@ class ProductController extends BaseController
                 return $this->response->setJSON(['error' => 'Authentication required']);
             }
             $this->session->setFlashdata('error', 'Please login to access this page.');
-            return redirect()->to('/');
+            return redirect()->to(base_url());
         }
         
         try {
@@ -309,21 +309,21 @@ class ProductController extends BaseController
         if ($this->request->isAJAX()) {
             return $this->response->setJSON(['success' => false, 'message' => 'Unknown error occurred']);
         }
-        return redirect()->to('/trash');
+        return redirect()->to(base_url('trash'));
     }
 
     public function view($id)
     {
         if (!$this->isAuthenticated()) {
             $this->session->setFlashdata('error', 'Please login to access this page.');
-            return redirect()->to('/');
+            return redirect()->to(base_url());
         }
         
         $product = $this->productModel->getProduct($id);
         
         if (!$product) {
             $this->session->setFlashdata('error', 'Product not found.');
-            return redirect()->to('/');
+            return redirect()->to(base_url());
         }
         
         $data['product'] = $product;
@@ -331,6 +331,17 @@ class ProductController extends BaseController
     }
     
     // Authentication methods
+    public function showLoginForm()
+    {
+        // If already authenticated, redirect to main page
+        if ($this->isAuthenticated()) {
+            return redirect()->to(base_url());
+        }
+        
+        // Show login form
+        return view('index', ['show_login' => true]);
+    }
+    
     public function login()
     {
         if ($this->request->getMethod() === 'POST') {
@@ -345,14 +356,14 @@ class ProductController extends BaseController
                 $this->session->set('admin_logged_in', true);
                 $this->session->set('admin_username', $username);
                 $this->session->setFlashdata('success', 'Welcome! You have successfully logged in.');
-                return redirect()->to('/');
+                return redirect()->to(base_url());
             } else {
                 $this->session->setFlashdata('error', 'Invalid username or password. Please try again.');
-                return redirect()->to('/');
+                return redirect()->to(base_url());
             }
         }
         
-        return redirect()->to('/');
+        return redirect()->to(base_url());
     }
     
     public function logout()
@@ -360,7 +371,7 @@ class ProductController extends BaseController
         $this->session->remove('admin_logged_in');
         $this->session->remove('admin_username');
         $this->session->setFlashdata('success', 'You have been logged out successfully.');
-        return redirect()->to('/');
+        return redirect()->to(base_url());
     }
     
     private function isAuthenticated()
@@ -522,16 +533,26 @@ class ProductController extends BaseController
     // Statistics endpoint
     public function statistics()
     {
+        // Set proper JSON content type header
+        $this->response->setContentType('application/json');
+        
         if (!$this->isAuthenticated()) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Authentication required']);
+            return $this->response->setStatusCode(401)->setJSON(['success' => false, 'message' => 'Authentication required', 'error' => 'UNAUTHENTICATED']);
         }
 
         try {
             $period = $this->request->getGet('period') ?? 'daily';
+            
+            // Validate period parameter
+            if (!in_array($period, ['daily', 'weekly', 'monthly'])) {
+                return $this->response->setStatusCode(400)->setJSON(['success' => false, 'message' => 'Invalid period. Must be daily, weekly, or monthly.']);
+            }
+            
             $statisticsData = $this->productModel->getStatistics($period);
             return $this->response->setJSON(['success' => true, 'data' => $statisticsData]);
         } catch (\Exception $e) {
-            return $this->response->setJSON(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
+            log_message('error', 'Statistics API Error: ' . $e->getMessage());
+            return $this->response->setStatusCode(500)->setJSON(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
         }
     }
 }

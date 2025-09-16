@@ -10,6 +10,7 @@ use CodeIgniter\Router\RouteCollection;
 $routes->get('/', 'ProductController::index');
 
 // Authentication routes
+$routes->get('login', 'ProductController::showLoginForm');
 $routes->post('login', 'ProductController::login');
 $routes->get('logout', 'ProductController::logout');
 

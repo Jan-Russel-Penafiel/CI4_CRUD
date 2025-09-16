@@ -122,7 +122,7 @@
                     <p class="mb-0 mt-2">Add a new product to your inventory</p>
                 </div>
                 <div class="col-md-6 text-end">
-                    <a href="/" class="btn btn-light btn-lg">
+                    <a href="<?= base_url() ?>" class="btn btn-light btn-lg">
                         <i class="fas fa-arrow-left me-2"></i>Back to Products
                     </a>
                 </div>
@@ -149,7 +149,7 @@
                             </div>
                         <?php endif; ?>
 
-                        <form action="/products/create" method="POST" id="createProductForm">
+                        <form action="<?= base_url('products/create') ?>" method="POST" id="createProductForm">
                             <div class="row">
                                 <div class="col-md-12">
                                     <div class="mb-3">
@@ -234,7 +234,7 @@
 
                             <div class="row">
                                 <div class="col-md-6">
-                                    <a href="/" class="btn btn-outline-black btn-lg w-100">
+                                    <a href="<?= base_url() ?>" class="btn btn-outline-black btn-lg w-100">
                                         <i class="fas fa-times me-2"></i>Cancel
                                     </a>
                                 </div>
