@@ -229,6 +229,12 @@
             height: 3rem
         }
 
+        .login-card .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+            border-width: 0.1rem
+        }
+
         .tooltip {
             font-size: .75rem;
             opacity: 0;
@@ -253,29 +259,126 @@
         }
 
         .login-form-container {
-            min-height: 60vh;
+            min-height: 100vh;
             display: flex;
-            align-items: center;
-            justify-content: center
+            align-items: flex-start;
+            justify-content: center;
+            padding: 2rem 20px 20px 20px;
+            background-color: var(--light-gray);
         }
 
         .login-card {
-            box-shadow: 0 8px 16px rgba(0, 0, 0, .15);
-            border: none
+            box-shadow: 0 8px 25px rgba(0, 0, 0, .15);
+            border: 2px solid var(--primary-black);
+            border-radius: 10px;
+            background-color: var(--primary-white);
+            max-width: 420px;
+            width: 100%;
         }
 
         .login-card .card-header {
-            border-radius: 10px 10px 0 0
+            background: linear-gradient(135deg, var(--primary-black) 0%, var(--dark-gray) 100%);
+            color: var(--primary-white);
+            border-bottom: 1px solid var(--primary-black);
+            border-radius: 8px 8px 0 0;
+            padding: 1.5rem;
+        }
+
+        .login-card .card-header h4 {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        .login-card .card-header small {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+
+        .login-card .card-body {
+            padding: 2rem;
         }
 
         .login-card .form-control {
             border-radius: 6px;
-            font-size: .85rem
+            font-size: 0.9rem;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
         }
 
         .login-card .form-control:focus {
             border-color: var(--primary-black);
-            box-shadow: 0 0 0 .2rem rgba(0, 0, 0, .25)
+            box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.25);
+        }
+
+        .login-card .form-control.is-invalid {
+            border-color: #dc3545;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+        }
+
+        .login-card .form-label {
+            font-weight: 500;
+            color: var(--primary-black);
+            margin-bottom: 0.5rem;
+        }
+
+        .login-card .btn-black {
+            background: linear-gradient(135deg, var(--primary-black) 0%, var(--dark-gray) 100%);
+            border: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            transition: all 0.15s ease-in-out;
+        }
+
+        .login-card .btn-black:hover {
+            background: linear-gradient(135deg, var(--dark-gray) 0%, var(--primary-black) 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .login-card .alert {
+            font-size: 0.85rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+        }
+
+        .login-card .text-muted a {
+            color: var(--primary-black) !important;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .login-card .text-muted a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 576px) {
+            .login-form-container {
+                padding: 1rem 10px 10px 10px;
+            }
+
+            .login-card {
+                margin: 0;
+            }
+
+            .login-card .card-header {
+                padding: 1rem;
+            }
+
+            .login-card .card-header h4 {
+                font-size: 1.2rem;
+            }
+
+            .login-card .card-body {
+                padding: 1.5rem;
+            }
+
+            .login-card .form-control {
+                font-size: 0.9rem;
+            }
         }
 
         .deleted-product {
@@ -957,6 +1060,7 @@
 <body>
     <div class="status-indicator" id="statusIndicator"><i class="fas fa-sync-alt me-1"></i><span id="statusText">Checking for updates...</span></div>
     <div class="toast-container position-fixed bottom-0 start-0 p-2" style="z-index:9999;"></div>
+    <?php if (!isset($show_login) || !$show_login): ?>
     <div class="header">
         <div class="container">
             <div class="row align-items-center">
@@ -964,27 +1068,125 @@
                     <h1 class="mb-0"><i class="fas fa-box-open me-3"></i>Products Management</h1>
                     <p class="mb-0 mt-2">Complete CRUD Operations System</p>
                 </div>
-                <div class="col-md-6 text-end"><?php if (isset($show_login) && $show_login): ?><span class="btn btn-outline-light btn-lg" disabled><i class="fas fa-lock me-2"></i>Login Required</span><?php else: ?><div class="d-flex justify-content-end align-items-center gap-3"><small class="text-light"><i class="fas fa-user me-1"></i>Welcome, Admin!</small>
-                            <div class="auto-refresh-indicator" id="autoRefreshStatus" title="Auto-sync is always enabled"><i class="fas fa-circle me-1"></i><span id="autoRefreshText">Auto-sync ON</span></div><a href="#" onclick="openStatisticsModal()" class="btn btn-outline-light"><i class="fas fa-chart-bar me-2"></i>Statistics</a><a href="#" onclick="openTrashModal()" class="btn btn-outline-light"><i class="fas fa-trash me-2"></i>Trash</a><a href="<?= base_url('logout') ?>" class="btn btn-outline-light"><i class="fas fa-sign-out-alt me-2"></i>Logout</a>
-                        </div><?php endif; ?></div>
+                <div class="col-md-6 text-end">
+                    <div class="d-flex justify-content-end align-items-center gap-3">
+                        <small class="text-light">
+                            <i class="fas fa-user me-1"></i>Welcome, <?= esc(session()->get('username') ?? 'User') ?>!
+                        </small>
+                        <div class="auto-refresh-indicator" id="autoRefreshStatus" title="Auto-sync is always enabled">
+                            <i class="fas fa-circle me-1"></i>
+                            <span id="autoRefreshText">Auto-sync ON</span>
+                        </div>
+                        <a href="#" onclick="openStatisticsModal()" class="btn btn-outline-light">
+                            <i class="fas fa-chart-bar me-2"></i>Statistics
+                        </a>
+                        <a href="#" onclick="openTrashModal()" class="btn btn-outline-light">
+                            <i class="fas fa-trash me-2"></i>Trash
+                        </a>
+                        <a href="<?= base_url('auth/logout') ?>" class="btn btn-outline-light">
+                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
     <div class="container">
         <?php if (isset($show_login) && $show_login): ?>
-            <div class="login-form-container">
-                <div class="col-md-6 col-lg-4">
-                    <div class="card login-card">
-                        <div class="card-header bg-black text-white text-center">
-                            <h4 class="mb-1"><i class="fas fa-shield-alt me-2"></i>Admin Portal</h4><small>Secure access required</small>
-                        </div>
-                        <div class="card-body p-4">
-                            <form action="<?= base_url('login') ?>" method="post" id="loginForm">
-                                <div class="mb-3"><label for="username" class="form-label"><i class="fas fa-user me-1"></i>Username</label><input type="text" class="form-control" id="username" name="username" placeholder="Enter your username" required maxlength="50" autocomplete="username" value=""></div>
-                                <div class="mb-4"><label for="password" class="form-label"><i class="fas fa-key me-1"></i>Password</label><input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required maxlength="100" autocomplete="current-password"></div>
-                                <div class="d-grid"><button type="submit" class="btn btn-black btn-lg"><i class="fas fa-sign-in-alt me-2"></i>Access System</button></div>
+            <div class="login-form-container d-flex align-items-center justify-content-center min-vh-100">
+                <div class="container">
+                    <div class="row justify-content-center">
+                        <div class="col-12 col-md-6 col-lg-4">
+                            <div class="card login-card shadow-lg">
+                                <div class="card-header text-center">
+                                    <h4 class="mb-1"><i class="fas fa-shield-alt me-2"></i>User Portal</h4>
+                                    <small>Secure access required</small>
+                                </div>
+                                <div class="card-body p-4">
+                            <!-- Flash Messages -->
+                            <?php if (session()->getFlashdata('error')): ?>
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    <i class="fas fa-exclamation-circle me-2"></i>
+                                    <?= session()->getFlashdata('error') ?>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if (session()->getFlashdata('success')): ?>
+                                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    <?= session()->getFlashdata('success') ?>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            <?php endif; ?>
+
+                            <!-- Validation Errors -->
+                            <?php if (session()->getFlashdata('validation_errors')): ?>
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Please fix the following errors:</strong>
+                                    <ul class="mb-0 mt-2">
+                                        <?php foreach (session()->getFlashdata('validation_errors') as $error): ?>
+                                            <li><?= esc($error) ?></li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                </div>
+                            <?php endif; ?>
+
+                            <form action="<?= base_url('auth/processLogin') ?>" method="post" id="loginForm">
+                                <?= csrf_field() ?>
+                                <div class="mb-3">
+                                    <label for="username" class="form-label"><i class="fas fa-user me-1"></i>Username</label>
+                                    <input type="text" 
+                                           class="form-control <?= (session()->getFlashdata('validation_errors') && isset(session()->getFlashdata('validation_errors')['username'])) ? 'is-invalid' : '' ?>" 
+                                           id="username" 
+                                           name="username" 
+                                           placeholder="Enter your username" 
+                                           required 
+                                           maxlength="50" 
+                                           autocomplete="username" 
+                                           value="<?= old('username') ?>">
+                                    <?php if (session()->getFlashdata('validation_errors') && isset(session()->getFlashdata('validation_errors')['username'])): ?>
+                                        <div class="invalid-feedback">
+                                            <?= session()->getFlashdata('validation_errors')['username'] ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="mb-4">
+                                    <label for="password" class="form-label"><i class="fas fa-key me-1"></i>Password</label>
+                                    <input type="password" 
+                                           class="form-control <?= (session()->getFlashdata('validation_errors') && isset(session()->getFlashdata('validation_errors')['password'])) ? 'is-invalid' : '' ?>" 
+                                           id="password" 
+                                           name="password" 
+                                           placeholder="Enter your password" 
+                                           required 
+                                           maxlength="100" 
+                                           autocomplete="current-password">
+                                    <?php if (session()->getFlashdata('validation_errors') && isset(session()->getFlashdata('validation_errors')['password'])): ?>
+                                        <div class="invalid-feedback">
+                                            <?= session()->getFlashdata('validation_errors')['password'] ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="d-grid mb-3">
+                                    <button type="submit" class="btn btn-black btn-lg" id="loginBtn">
+                                        <span class="loading-spinner spinner-border spinner-border-sm d-none me-2" role="status"></span>
+                                        <i class="fas fa-sign-in-alt me-2"></i>Access System
+                                    </button>
+                                </div>
+                                <div class="text-center">
+                                    <small class="text-muted">
+                                        Don't have an account? 
+                                        <a href="<?= base_url('auth/register') ?>" class="text-decoration-none">
+                                            <strong>Register here</strong>
+                                        </a>
+                                    </small>
+                                </div>
                             </form>
+                        </div>
+                    </div>
                         </div>
                     </div>
                 </div>
@@ -1546,6 +1748,15 @@
         // Application Initializer
         const AppInitializer = {
             initializeMainApp() {
+                // Check if we're on the login page
+                const loginForm = document.getElementById('loginForm');
+                
+                if (loginForm) {
+                    // We're on the login page, only initialize login-specific components
+                    return;
+                }
+                
+                // We're on the main application, initialize all components
                 TooltipManager.initialize();
                 SearchManager.initialize();
                 ProductTableManager.loadInitial();
@@ -1559,27 +1770,74 @@
                 const form = document.getElementById('loginForm');
                 const username = document.getElementById('username');
                 const password = document.getElementById('password');
+                const loginBtn = document.getElementById('loginBtn');
                 
                 if (username) username.focus();
                 
-                this.attachEventListeners(form, username, password);
+                // Auto-hide flash messages after 3 seconds
+                this.initializeAutoHideAlerts();
+                
+                this.attachEventListeners(form, username, password, loginBtn);
             },
 
-            attachEventListeners(form, username, password) {
-                form.addEventListener('submit', (e) => this.handleSubmit(e, username, password, form));
-                username.addEventListener('keypress', (e) => this.handleUsernameKeypress(e, password));
-                password.addEventListener('keypress', (e) => this.handlePasswordKeypress(e, form));
+            initializeAutoHideAlerts() {
+                const alerts = document.querySelectorAll('.login-card .alert');
+                alerts.forEach(alert => {
+                    if (alert) {
+                        setTimeout(() => {
+                            if (alert.parentNode) {
+                                // Use Bootstrap's alert dismissal for smooth transition
+                                const bsAlert = new bootstrap.Alert(alert);
+                                if (bsAlert) {
+                                    bsAlert.close();
+                                }
+                            }
+                        }, 3000);
+                    }
+                });
             },
 
-            handleSubmit(e, username, password, form) {
+            attachEventListeners(form, username, password, loginBtn) {
+                if (form) {
+                    form.addEventListener('submit', (e) => this.handleSubmit(e, username, password, loginBtn));
+                }
+                if (username) {
+                    username.addEventListener('keypress', (e) => this.handleUsernameKeypress(e, password));
+                    username.addEventListener('input', () => this.clearFieldError(username));
+                }
+                if (password) {
+                    password.addEventListener('keypress', (e) => this.handlePasswordKeypress(e, form));
+                    password.addEventListener('input', () => this.clearFieldError(password));
+                }
+            },
+
+            handleSubmit(e, username, password, loginBtn) {
                 if (!this.validateForm(username, password)) {
                     e.preventDefault();
                     return false;
                 }
 
-                const btn = form.querySelector('button[type="submit"]');
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Signing In...';
-                btn.disabled = true;
+                // Show loading state
+                this.setLoadingState(loginBtn, true);
+            },
+
+            setLoadingState(btn, loading) {
+                const spinner = btn.querySelector('.loading-spinner');
+                const icon = btn.querySelector('.fas');
+                
+                if (loading) {
+                    btn.disabled = true;
+                    if (spinner) {
+                        spinner.classList.remove('d-none');
+                    }
+                    if (icon && !icon.classList.contains('spinner-border-sm')) {
+                        icon.classList.add('fa-spin');
+                    }
+                    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span>Signing In...';
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-sign-in-alt me-2"></i>Access System';
+                }
             },
 
             validateForm(username, password) {
@@ -1637,6 +1895,12 @@
                 });
             },
 
+            clearFieldError(input) {
+                input.classList.remove('is-invalid');
+                const error = input.parentNode.querySelector('.invalid-feedback');
+                if (error) error.remove();
+            },
+
             handleUsernameKeypress(e, password) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
@@ -1647,7 +1911,7 @@
             handlePasswordKeypress(e, form) {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    form.querySelector('button[type="submit"]').click();
+                    form.submit();
                 }
             }
         };
@@ -2092,6 +2356,12 @@
             },
 
             validateDOMElements() {
+                // Skip validation if we're on the login page
+                const loginForm = document.getElementById('loginForm');
+                if (loginForm) {
+                    return true; // Login page doesn't need these elements
+                }
+                
                 const requiredElements = [
                     'productCountText',
                     'productsTableContainer',
@@ -3672,8 +3942,15 @@
 
         // Initialize the complete application
         setTimeout(() => {
-            AppInitializer.initializeMainApp();
-            EventHandlers.initialize();
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                // On login page, only initialize basic event handlers
+                EventHandlers.initialize();
+            } else {
+                // On main app, initialize everything
+                AppInitializer.initializeMainApp();
+                EventHandlers.initialize();
+            }
         }, 100);
 
         // Statistics Management System

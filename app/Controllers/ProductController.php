@@ -19,7 +19,7 @@ class ProductController extends BaseController
     {
         // Check if user is authenticated
         if (!$this->isAuthenticated()) {
-            return view('index', ['show_login' => true]);
+            return redirect()->to(base_url('auth/login'));
         }
         
         $pager = \Config\Services::pager();
@@ -376,7 +376,7 @@ class ProductController extends BaseController
     
     private function isAuthenticated()
     {
-        return $this->session->get('admin_logged_in') === true;
+        return $this->session->get('logged_in') === true;
     }
 
     // Bulk Operations

@@ -10,9 +10,19 @@ use CodeIgniter\Router\RouteCollection;
 $routes->get('/', 'ProductController::index');
 
 // Authentication routes
-$routes->get('login', 'ProductController::showLoginForm');
-$routes->post('login', 'ProductController::login');
-$routes->get('logout', 'ProductController::logout');
+$routes->group('auth', function ($routes) {
+    $routes->get('login', 'AuthController::login');
+    $routes->post('processLogin', 'AuthController::processLogin');
+    $routes->get('register', 'AuthController::register');
+    $routes->post('processRegister', 'AuthController::processRegister');
+    $routes->get('logout', 'AuthController::logout');
+    $routes->get('check', 'AuthController::checkAuth'); // AJAX endpoint
+});
+
+// Legacy login routes (for backward compatibility)
+$routes->get('login', 'AuthController::login');
+$routes->post('login', 'AuthController::processLogin');
+$routes->get('logout', 'AuthController::logout');
 
 // Alternative route for products (optional)
 $routes->get('products', 'ProductController::index');
