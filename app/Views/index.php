@@ -264,14 +264,26 @@
             align-items: flex-start;
             justify-content: center;
             padding: 2rem 20px 20px 20px;
-            background-color: var(--light-gray);
+            background-image: url('<?= base_url('nsx.jpg') ?>');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1000;
         }
 
         .login-card {
             box-shadow: 0 8px 25px rgba(0, 0, 0, .15);
             border: 2px solid var(--primary-black);
             border-radius: 10px;
-            background-color: var(--primary-white);
+            background-color: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             max-width: 420px;
             width: 100%;
         }
@@ -297,6 +309,7 @@
 
         .login-card .card-body {
             padding: 2rem;
+            background-color: transparent;
         }
 
         .login-card .form-control {
@@ -379,6 +392,47 @@
             .login-card .form-control {
                 font-size: 0.9rem;
             }
+        }
+
+        /* Toggle Background Button */
+        .toggle-bg-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: var(--primary-white);
+            border: 2px solid var(--primary-white);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .toggle-bg-btn:hover {
+            background-color: rgba(0, 0, 0, 0.9);
+            transform: scale(1.1);
+        }
+
+        .toggle-bg-btn i {
+            font-size: 1.2rem;
+        }
+
+        .login-form-container .login-card.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .login-form-container .login-card {
+            transition: opacity 0.3s ease;
         }
 
         .deleted-product {
@@ -1095,6 +1149,10 @@
 
     <div class="container">
         <?php if (isset($show_login) && $show_login): ?>
+            <!-- Toggle Background Button for Login Page -->
+            <button class="toggle-bg-btn" id="toggleBgBtn" title="Hide form to view background">
+                <i class="fas fa-eye-slash"></i>
+            </button>
             <div class="login-form-container d-flex align-items-center justify-content-center min-vh-100">
                 <div class="container">
                     <div class="row justify-content-center">
@@ -1105,35 +1163,6 @@
                                     <small>Secure access required</small>
                                 </div>
                                 <div class="card-body p-4">
-                            <!-- Flash Messages -->
-                            <?php if (session()->getFlashdata('error')): ?>
-                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                    <i class="fas fa-exclamation-circle me-2"></i>
-                                    <?= session()->getFlashdata('error') ?>
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                                </div>
-                            <?php endif; ?>
-
-                            <?php if (session()->getFlashdata('success')): ?>
-                                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                                    <i class="fas fa-check-circle me-2"></i>
-                                    <?= session()->getFlashdata('success') ?>
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                                </div>
-                            <?php endif; ?>
-
-                            <!-- Validation Errors -->
-                            <?php if (session()->getFlashdata('validation_errors')): ?>
-                                <div class="alert alert-danger">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>
-                                    <strong>Please fix the following errors:</strong>
-                                    <ul class="mb-0 mt-2">
-                                        <?php foreach (session()->getFlashdata('validation_errors') as $error): ?>
-                                            <li><?= esc($error) ?></li>
-                                        <?php endforeach; ?>
-                                    </ul>
-                                </div>
-                            <?php endif; ?>
 
                             <form action="<?= base_url('auth/processLogin') ?>" method="post" id="loginForm">
                                 <?= csrf_field() ?>
@@ -1623,6 +1652,17 @@
                 <?php endif; ?>
                 <?php if (session()->getFlashdata('error')): ?>
                 this.showNotification('<?= addslashes(session()->getFlashdata('error')) ?>', 'error');
+                <?php endif; ?>
+                <?php if (session()->getFlashdata('validation_errors')): ?>
+                <?php 
+                $errors = session()->getFlashdata('validation_errors'); 
+                if (is_array($errors)) {
+                    $errorMessage = "Please fix the following errors:\n• " . implode("\n• ", array_values($errors));
+                } else {
+                    $errorMessage = "Validation errors occurred.";
+                }
+                ?>
+                this.showNotification('<?= addslashes($errorMessage) ?>', 'error');
                 <?php endif; ?>
             },
 
@@ -3946,6 +3986,27 @@
             if (loginForm) {
                 // On login page, only initialize basic event handlers
                 EventHandlers.initialize();
+                
+                // Toggle background visibility for login page
+                const toggleBtn = document.getElementById('toggleBgBtn');
+                if (toggleBtn) {
+                    toggleBtn.addEventListener('click', function() {
+                        const loginCard = document.querySelector('.login-card');
+                        const icon = this.querySelector('i');
+                        
+                        if (loginCard && loginCard.classList.contains('hidden')) {
+                            loginCard.classList.remove('hidden');
+                            icon.classList.remove('fa-eye');
+                            icon.classList.add('fa-eye-slash');
+                            this.title = 'Hide form to view background';
+                        } else if (loginCard) {
+                            loginCard.classList.add('hidden');
+                            icon.classList.remove('fa-eye-slash');
+                            icon.classList.add('fa-eye');
+                            this.title = 'Show form';
+                        }
+                    });
+                }
             } else {
                 // On main app, initialize everything
                 AppInitializer.initializeMainApp();
