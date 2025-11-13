@@ -6,7 +6,7 @@ use CodeIgniter\Router\RouteCollection;
  * @var RouteCollection $routes
  */
 
-// Set Products Management as the default landing page
+// Set Products page (index.php) as the default landing page
 $routes->get('/', 'ProductController::index');
 
 // Authentication routes
@@ -24,10 +24,23 @@ $routes->get('login', 'AuthController::login');
 $routes->post('login', 'AuthController::processLogin');
 $routes->get('logout', 'AuthController::logout');
 
-// Alternative route for products (optional)
-$routes->get('products', 'ProductController::index');
+// POS System Routes
+$routes->group('pos', function ($routes) {
+    $routes->get('dashboard', 'PosController::dashboard');
+    $routes->get('scanner', 'PosController::scanner');
+    $routes->post('process-scan', 'PosController::processScan');
+    $routes->post('update-cart', 'PosController::updateCart');
+    $routes->get('cart', 'PosController::getCart');
+    $routes->get('checkout', 'PosController::checkout');
+    $routes->post('process-checkout', 'PosController::processCheckout');
+    $routes->get('receipt/(:num)', 'PosController::receipt/$1');
+    $routes->post('resend-sms/(:num)', 'PosController::resendSms/$1');
+    $routes->post('search-products', 'PosController::searchProducts');
+    $routes->post('add-product', 'PosController::addProduct');
+});
 
 // Product CRUD routes
+$routes->get('products', 'ProductController::index');
 $routes->get('products/create', 'ProductController::showCreateForm');
 $routes->post('products/create', 'ProductController::create');
 $routes->get('products/view/(:num)', 'ProductController::view/$1');

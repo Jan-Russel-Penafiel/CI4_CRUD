@@ -246,6 +246,28 @@
                             </div>
 
                             <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="stock_quantity" class="form-label">
+                                            <i class="fas fa-boxes me-2"></i>Stock Quantity
+                                        </label>
+                                        <input type="number" 
+                                               min="0"
+                                               class="form-control <?= isset($validation) && $validation->hasError('stock_quantity') ? 'is-invalid' : '' ?>" 
+                                               id="stock_quantity" 
+                                               name="stock_quantity" 
+                                               value="<?= old('stock_quantity', $product['stock_quantity'] ?? 0) ?>"
+                                               placeholder="0">
+                                        <?php if (isset($validation) && $validation->hasError('stock_quantity')): ?>
+                                            <div class="invalid-feedback">
+                                                <?= $validation->getError('stock_quantity') ?>
+                                            </div>
+                                        <?php endif; ?>
+                                        <div class="form-text">
+                                            <small class="text-muted">Original: <?= $product['stock_quantity'] ?? 0 ?> units</small>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="col-md-8">
                                     <div class="mb-3">
                                         <label for="description" class="form-label">
@@ -264,26 +286,6 @@
                                         <div class="form-text d-flex justify-content-between">
                                             <span><span id="charCount">0</span>/1000 characters</span>
                                             <small class="text-muted">Original length: <?= strlen($product['description']) ?> characters</small>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="mb-3">
-                                        <label class="form-label">Price Comparison</label>
-                                        <div class="product-info">
-                                            <div class="d-flex justify-content-between">
-                                                <span>Original:</span>
-                                                <strong>₱<?= number_format($product['price'], 2) ?></strong>
-                                            </div>
-                                            <div class="d-flex justify-content-between">
-                                                <span>New:</span>
-                                                <strong id="pricePreview">₱<?= number_format($product['price'], 2) ?></strong>
-                                            </div>
-                                            <hr class="my-2">
-                                            <div class="d-flex justify-content-between">
-                                                <span>Difference:</span>
-                                                <strong id="priceDifference">₱0.00</strong>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -321,6 +323,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         const originalPrice = <?= $product['price'] ?>;
+        const originalStock = <?= $product['stock_quantity'] ?? 0 ?>;
         
         // Character counter for description
         document.getElementById('description').addEventListener('input', function() {
@@ -334,41 +337,22 @@
             }
         });
 
-        // Price preview and comparison
-        document.getElementById('price').addEventListener('input', function() {
-            const newPrice = parseFloat(this.value) || 0;
-            const difference = newPrice - originalPrice;
-            
-            document.getElementById('pricePreview').textContent = '₱' + newPrice.toFixed(2);
-            
-            const diffElement = document.getElementById('priceDifference');
-            if (difference > 0) {
-                diffElement.textContent = '+₱' + difference.toFixed(2);
-                diffElement.className = 'text-success';
-            } else if (difference < 0) {
-                diffElement.textContent = '-₱' + Math.abs(difference).toFixed(2);
-                diffElement.className = 'text-danger';
-            } else {
-                diffElement.textContent = '₱0.00';
-                diffElement.className = '';
-            }
-        });
-
         // Reset form to original values
         function resetForm() {
             document.getElementById('product_name').value = '<?= esc($product['product_name']) ?>';
             document.getElementById('description').value = '<?= esc($product['description']) ?>';
             document.getElementById('price').value = '<?= $product['price'] ?>';
+            document.getElementById('stock_quantity').value = '<?= $product['stock_quantity'] ?? 0 ?>';
             
             // Trigger events to update counters
             document.getElementById('description').dispatchEvent(new Event('input'));
-            document.getElementById('price').dispatchEvent(new Event('input'));
         }
 
         // Form validation
         document.getElementById('editProductForm').addEventListener('submit', function(e) {
             const productName = document.getElementById('product_name').value.trim();
             const price = parseFloat(document.getElementById('price').value);
+            const stockQuantity = parseInt(document.getElementById('stock_quantity').value);
             
             if (productName.length < 3) {
                 e.preventDefault();
@@ -381,15 +365,18 @@
                 alert('Price must be greater than 0.');
                 return;
             }
+            
+            if (stockQuantity < 0) {
+                e.preventDefault();
+                alert('Stock quantity cannot be negative.');
+                return;
+            }
         });
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
             const description = document.getElementById('description');
             document.getElementById('charCount').textContent = description.value.length;
-            
-            const price = document.getElementById('price');
-            price.dispatchEvent(new Event('input'));
         });
     </script>
 </body>

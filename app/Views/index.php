@@ -1253,7 +1253,7 @@
                         <h5 class="mb-0"><i class="fas fa-table me-2"></i>Products List</h5>
                         <small class="text-light opacity-75" style="font-size: 0.65rem;" id="systemCredit"></small>
                     </div>
-                    <div class="d-flex align-items-center"><small class="me-3" id="productCount"><i class="fas fa-list me-1"></i><span id="productCountText"><?php if (!empty($products)): ?>Showing <?= count($products) ?> product(s)<?php if (isset($pager)): ?> (Page <?= $pager->getCurrentPage() ?> of <?= $pager->getPageCount() ?>)<?php endif; ?><?php else: ?>No products<?php endif; ?></span></small><button class="btn btn-outline-light btn-sm" onclick="refreshProducts()" title="Refresh"><i class="fas fa-sync-alt" id="refreshIcon"></i></button></div>
+                    <div class="d-flex align-items-center"><small class="me-3" id="productCount"><i class="fas fa-list me-1"></i><span id="productCountText"><?php if (!empty($products)): ?>Showing <?= count($products) ?> product(s)<?php if (isset($pager)): ?> (Page <?= $pager->getCurrentPage() ?> of <?= $pager->getPageCount() ?>)<?php endif; ?><?php else: ?>No products<?php endif; ?></span></small><a href="<?= base_url('pos/dashboard') ?>" class="btn btn-outline-light btn-sm me-2" title="POS System"><i class="fas fa-cash-register me-1"></i>POS</a><button class="btn btn-outline-light btn-sm" onclick="refreshProducts()" title="Refresh"><i class="fas fa-sync-alt" id="refreshIcon"></i></button></div>
                 </div>
                 <div class="card-body p-0" id="productsTableContainer">
                     <div id="loadingState" class="text-center py-5" style="display:none;">
@@ -1281,6 +1281,7 @@
                                         <th scope="col"><i class="fas fa-tag me-1"></i>Product Name</th>
                                         <th scope="col"><i class="fas fa-align-left me-1"></i>Description</th>
                                         <th scope="col"><i class="fas fa-peso-sign me-1"></i>Price</th>
+                                        <th scope="col"><i class="fas fa-boxes me-1"></i>Stock</th>
                                         <th scope="col"><i class="fas fa-calendar me-1"></i>Created At</th>
                                         <th scope="col"><i class="fas fa-cogs me-1"></i>Actions</th>
                                     </tr>
@@ -1293,6 +1294,11 @@
                                             <td><span class="fw-semibold"><?= esc($product['product_name']) ?></span></td>
                                             <td><?php if (!empty($product['description'])): ?><span title="<?= esc($product['description']) ?>"><?= esc(substr($product['description'], 0, 50)) ?><?= strlen($product['description']) > 50 ? '...' : '' ?></span><?php else: ?><em class="text-muted">No description</em><?php endif; ?></td>
                                             <td><strong class="text-success">₱<?= number_format($product['price'], 2) ?></strong></td>
+                                            <td>
+                                                <span class="badge <?= ($product['stock_quantity'] ?? 0) > 10 ? 'bg-success' : (($product['stock_quantity'] ?? 0) > 0 ? 'bg-warning text-dark' : 'bg-danger') ?>" style="font-size: 0.7rem;">
+                                                    <?= $product['stock_quantity'] ?? 0 ?> units
+                                                </span>
+                                            </td>
                                             <td><small><?= date('M d, Y', strtotime($product['created_at'])) ?></small><br><small class="text-muted"><?= date('g:i A', strtotime($product['created_at'])) ?></small></td>
                                             <td>
                                                 <div class="btn-group"><button type="button" class="btn btn-outline-primary btn-sm" onclick="viewProduct(<?= $product['id'] ?>)" title="View Product Details" data-bs-toggle="tooltip"><i class="fas fa-eye"></i></button><button type="button" class="btn btn-outline-black btn-sm" onclick="editProduct(<?= $product['id'] ?>)" title="Edit Product" data-bs-toggle="tooltip"><i class="fas fa-edit"></i></button><button type="button" class="btn btn-outline-danger btn-sm" onclick="deleteProduct(<?= $product['id'] ?>, '<?= esc($product['product_name']) ?>')" title="Delete Product" data-bs-toggle="tooltip"><i class="fas fa-trash"></i></button></div>

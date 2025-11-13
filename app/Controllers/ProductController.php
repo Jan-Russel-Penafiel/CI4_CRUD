@@ -78,6 +78,10 @@ class ProductController extends BaseController
             'price' => [
                 'label' => 'Price',
                 'rules' => 'required|decimal|greater_than[0]'
+            ],
+            'stock_quantity' => [
+                'label' => 'Stock Quantity',
+                'rules' => 'permit_empty|integer|greater_than_equal_to[0]'
             ]
         ];
         
@@ -89,12 +93,14 @@ class ProductController extends BaseController
         $data = [
             'product_name' => $this->request->getPost('product_name'),
             'description' => $this->request->getPost('description'),
-            'price' => $this->request->getPost('price')
+            'price' => $this->request->getPost('price'),
+            'stock_quantity' => $this->request->getPost('stock_quantity') ?: 0
         ];
         
         try {
-            if ($this->productModel->createProduct($data)) {
-                $this->session->setFlashdata('success', 'Product created successfully!');
+            $productId = $this->productModel->createProduct($data);
+            if ($productId) {
+                $this->session->setFlashdata('success', 'Product created successfully with QR code!');
             } else {
                 $this->session->setFlashdata('error', 'Failed to create product. Please check your input.');
             }
@@ -151,6 +157,10 @@ class ProductController extends BaseController
             'price' => [
                 'label' => 'Price',
                 'rules' => 'required|decimal|greater_than[0]'
+            ],
+            'stock_quantity' => [
+                'label' => 'Stock Quantity',
+                'rules' => 'permit_empty|integer|greater_than_equal_to[0]'
             ]
         ];
         
@@ -163,11 +173,16 @@ class ProductController extends BaseController
         $data = [
             'product_name' => $this->request->getPost('product_name'),
             'description' => $this->request->getPost('description'),
-            'price' => $this->request->getPost('price')
+            'price' => $this->request->getPost('price'),
+            'stock_quantity' => $this->request->getPost('stock_quantity') ?: $product['stock_quantity']
         ];
         
         try {
             if ($this->productModel->updateProduct($id, $data)) {
+                // Regenerate QR code if price or name changed
+                if ($data['product_name'] !== $product['product_name'] || $data['price'] != $product['price']) {
+                    $this->productModel->generateQrCode($id);
+                }
                 $this->session->setFlashdata('success', 'Product updated successfully!');
             } else {
                 $this->session->setFlashdata('error', 'Failed to update product. Please check your input.');
@@ -326,7 +341,16 @@ class ProductController extends BaseController
             return redirect()->to(base_url());
         }
         
+        // Generate QR code for the product
+        $qrCodeService = new \App\Libraries\QrCodeService();
+        $qrCodeDataUri = $qrCodeService->generateProductQrCodeDataUri(
+            $product['id'], 
+            $product['product_name'], 
+            $product['price']
+        );
+        
         $data['product'] = $product;
+        $data['qrCodeDataUri'] = $qrCodeDataUri;
         return view('view_product', $data);
     }
     

@@ -8,7 +8,7 @@ class ProductModel extends Model
 {
     protected $table = 'products';
     protected $primaryKey = 'id';
-    protected $allowedFields = ['product_name', 'description', 'price', 'status'];
+    protected $allowedFields = ['product_name', 'description', 'price', 'qr_code', 'stock_quantity', 'status'];
     protected $useTimestamps = true;
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
@@ -39,6 +39,8 @@ class ProductModel extends Model
         'product_name' => 'required|min_length[3]|max_length[255]',
         'description'  => 'permit_empty|max_length[1000]',
         'price'        => 'required|decimal|greater_than[0]',
+        'stock_quantity' => 'permit_empty|integer|greater_than_equal_to[0]',
+        'qr_code'      => 'permit_empty',
         'status'       => 'permit_empty|in_list[active,deleted]'
     ];
     
@@ -56,6 +58,10 @@ class ProductModel extends Model
             'decimal'      => 'Price must be a valid decimal number.',
             'greater_than' => 'Price must be greater than 0.'
         ],
+        'stock_quantity' => [
+            'integer' => 'Stock quantity must be an integer.',
+            'greater_than_equal_to' => 'Stock quantity must be zero or greater.'
+        ],
         'status' => [
             'in_list' => 'Status must be either active or deleted.'
         ]
@@ -67,8 +73,19 @@ class ProductModel extends Model
         // Ensure new products are always active
         $data['status'] = 'active';
         
+        // Set default stock quantity if not provided
+        if (!isset($data['stock_quantity']) || $data['stock_quantity'] === '') {
+            $data['stock_quantity'] = 0;
+        }
+        
         if ($this->validate($data)) {
-            return $this->insert($data);
+            $productId = $this->insert($data);
+            
+            if ($productId) {
+                // Generate QR code for the product
+                $this->generateQrCode($productId);
+                return $productId;
+            }
         }
         return false;
     }
@@ -274,5 +291,96 @@ class ProductModel extends Model
             'labels' => $labels,
             'data' => $data
         ];
+    }
+    
+    /**
+     * Generate QR code for a product
+     * 
+     * @param int $productId
+     * @return bool Success status
+     */
+    public function generateQrCode($productId)
+    {
+        $product = $this->find($productId);
+        
+        if (!$product) {
+            return false;
+        }
+        
+        $qrCodeService = new \App\Libraries\QrCodeService();
+        $qrCodeData = $qrCodeService->generateProductQrCodeDataUri(
+            $product['id'],
+            $product['product_name'],
+            $product['price']
+        );
+        
+        if ($qrCodeData) {
+            return $this->update($productId, ['qr_code' => $qrCodeData]);
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Update stock quantity
+     * 
+     * @param int $productId
+     * @param int $quantity
+     * @param string $operation ('add' or 'subtract')
+     * @return bool Success status
+     */
+    public function updateStock($productId, $quantity, $operation = 'subtract')
+    {
+        $product = $this->find($productId);
+        
+        if (!$product) {
+            return false;
+        }
+        
+        $currentStock = $product['stock_quantity'];
+        
+        if ($operation === 'add') {
+            $newStock = $currentStock + $quantity;
+        } else {
+            $newStock = $currentStock - $quantity;
+            
+            // Prevent negative stock
+            if ($newStock < 0) {
+                return false;
+            }
+        }
+        
+        return $this->update($productId, ['stock_quantity' => $newStock]);
+    }
+    
+    /**
+     * Check if product has sufficient stock
+     * 
+     * @param int $productId
+     * @param int $quantity
+     * @return bool True if sufficient stock available
+     */
+    public function hasStock($productId, $quantity = 1)
+    {
+        $product = $this->find($productId);
+        
+        if (!$product) {
+            return false;
+        }
+        
+        return $product['stock_quantity'] >= $quantity;
+    }
+    
+    /**
+     * Get products with low stock (less than 10 items)
+     * 
+     * @param int $threshold
+     * @return array Low stock products
+     */
+    public function getLowStockProducts($threshold = 10)
+    {
+        return $this->where('status', 'active')
+                    ->where('stock_quantity <', $threshold)
+                    ->findAll();
     }
 }

@@ -225,11 +225,31 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <div class="info-row">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <span class="info-label"><i class="fas fa-boxes me-2"></i>Stock Quantity:</span>
+                                        </div>
+                                        <div class="col-md-9">
+                                            <div class="info-value">
+                                                <span class="badge <?= ($product['stock_quantity'] ?? 0) > 10 ? 'bg-success' : (($product['stock_quantity'] ?? 0) > 0 ? 'bg-warning' : 'bg-danger') ?> badge-custom">
+                                                    <?= $product['stock_quantity'] ?? 0 ?> units
+                                                </span>
+                                                <?php if (($product['stock_quantity'] ?? 0) <= 5 && ($product['stock_quantity'] ?? 0) > 0): ?>
+                                                    <small class="text-warning ms-2"><i class="fas fa-exclamation-triangle me-1"></i>Low stock</small>
+                                                <?php elseif (($product['stock_quantity'] ?? 0) == 0): ?>
+                                                    <small class="text-danger ms-2"><i class="fas fa-times-circle me-1"></i>Out of stock</small>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             
                             <div class="col-md-4">
                                 <div class="text-center">
-                                    <div class="card price-card">
+                                    <div class="card price-card mb-3">
                                         <div class="card-body">
                                             <i class="fas fa-peso-sign fa-3x mb-3"></i>
                                             <div class="price-display">₱<?= number_format($product['price'], 2) ?></div>
@@ -237,11 +257,26 @@
                                         </div>
                                     </div>
                                     
-                                    <div class="mt-3">
-                                        <small class="text-muted">
-                                            <i class="fas fa-info-circle me-1"></i>
-                                            Price includes applicable taxes
-                                        </small>
+                                    <!-- QR Code Section -->
+                                    <div class="card mt-3">
+                                        <div class="card-header bg-dark text-white">
+                                            <h6 class="mb-0"><i class="fas fa-qrcode me-2"></i>QR Code</h6>
+                                        </div>
+                                        <div class="card-body p-2">
+                                            <?php if (isset($qrCodeDataUri) && $qrCodeDataUri): ?>
+                                                <div class="qr-code-container">
+                                                    <img src="<?= $qrCodeDataUri ?>" 
+                                                         alt="QR Code for <?= esc($product['product_name']) ?>" 
+                                                         class="img-fluid" 
+                                                         style="max-width: 120px; max-height: 120px;">
+                                                </div>
+                                            <?php else: ?>
+                                                <div class="text-muted">
+                                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                                    QR Code generation failed
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
