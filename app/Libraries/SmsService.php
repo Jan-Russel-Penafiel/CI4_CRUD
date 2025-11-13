@@ -104,20 +104,27 @@ class SmsService
      */
     private function generateReceiptMessage($transactionData)
     {
-        $message = "=== POS RECEIPT ===\n";
+        $message = "POS RECEIPT\n\n";
+        
         $message .= "Transaction: " . $transactionData['transaction_number'] . "\n";
-        $message .= "Date: " . date('Y-m-d H:i:s', strtotime($transactionData['created_at'])) . "\n\n";
+        $message .= "Date: " . date('M d, Y H:i', strtotime($transactionData['created_at'])) . "\n\n";
         
         $message .= "ITEMS:\n";
         foreach ($transactionData['items'] as $item) {
-            $message .= "• " . $item['product_name'] . "\n";
-            $message .= "  Qty: " . $item['quantity'] . " x ₱" . number_format($item['price'], 2) . "\n";
-            $message .= "  Subtotal: ₱" . number_format($item['subtotal'], 2) . "\n\n";
+            // Truncate long product names for SMS readability
+            $productName = strlen($item['product_name']) > 25 
+                ? substr($item['product_name'], 0, 22) . "..." 
+                : $item['product_name'];
+            
+            $message .= $productName . "\n";
+            $message .= $item['quantity'] . " x P" . number_format($item['price'], 2) . " = P" . number_format($item['subtotal'], 2) . "\n\n";
         }
         
-        $message .= "TOTAL: ₱" . number_format($transactionData['total_amount'], 2) . "\n";
-        $message .= "Payment: " . ucfirst($transactionData['payment_method']) . "\n\n";
-        $message .= "Thank you for your purchase!";
+        $message .= "TOTAL: P" . number_format($transactionData['total_amount'], 2) . "\n";
+        $message .= "Payment: " . strtoupper($transactionData['payment_method']) . "\n\n";
+        
+        $message .= "Thank you for shopping!\n";
+        $message .= "POS System " . date('Y');
         
         return $message;
     }

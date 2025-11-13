@@ -65,7 +65,7 @@
 
         .card {
             border: 2px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: 4px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, .1);
             transition: transform .2s ease;
             font-size: .75rem
@@ -75,7 +75,17 @@
             background-color: var(--primary-black);
             color: var(--primary-white);
             border-bottom: none;
-            font-weight: 600
+            font-weight: 600;
+            border-radius: 2px 2px 0 0;
+        }
+
+        .card-body {
+            border-radius: 0 0 2px 2px;
+            padding: 1rem;
+        }
+
+        .payment-card .card-body {
+            padding: 0.75rem;
         }
 
         .card-header h4,
@@ -86,12 +96,18 @@
 
         .payment-option {
             border: 2px solid var(--border-color);
-            border-radius: 10px;
-            padding: 20px;
+            border-radius: 6px;
+            padding: 6px 4px;
             cursor: pointer;
             transition: all 0.3s;
             text-align: center;
-            background-color: var(--primary-white)
+            background-color: var(--primary-white);
+            font-size: 0.6rem;
+            min-height: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
         }
 
         .payment-option:hover {
@@ -108,11 +124,23 @@
             display: none;
         }
 
+        .payment-option i {
+            font-size: 1rem !important;
+            margin-bottom: 0.2rem;
+        }
+
+        .payment-option h6 {
+            font-size: 0.6rem;
+            margin: 0;
+            line-height: 1;
+        }
+
         .order-summary {
             background: var(--light-gray);
-            border-radius: 10px;
-            padding: 20px;
-            border: 1px solid var(--border-color)
+            border-radius: 6px;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            font-size: 0.75rem;
         }
 
         .cart-item {
@@ -189,6 +217,109 @@
             font-size: .8rem
         }
 
+        .toast {
+            background-color: var(--primary-black);
+            border: 2px solid var(--primary-white);
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, .1);
+            font-size: .65rem;
+            min-width: 200px;
+            max-width: 280px;
+            margin-bottom: .25rem;
+            color: var(--primary-white)
+        }
+
+        .toast-header {
+            background-color: var(--primary-black);
+            border-bottom: 1px solid var(--primary-white);
+            padding: .3rem .5rem;
+            font-weight: 600;
+            color: var(--primary-white);
+            font-size: .6rem
+        }
+
+        .toast-body {
+            padding: .4rem .5rem;
+            color: var(--primary-white);
+            background-color: var(--primary-black);
+            font-size: .65rem;
+            line-height: 1.2
+        }
+
+        .toast.bg-success,
+        .toast.bg-danger,
+        .toast.bg-info,
+        .toast.bg-primary {
+            background-color: var(--primary-black);
+            border-color: var(--primary-white)
+        }
+
+        .toast.bg-success .toast-header,
+        .toast.bg-danger .toast-header,
+        .toast.bg-info .toast-header,
+        .toast.bg-primary .toast-header {
+            background-color: var(--primary-black);
+            color: var(--primary-white)
+        }
+
+        .toast .btn-close {
+            font-size: .5rem;
+            padding: .2rem;
+            filter: invert(1)
+        }
+
+        .toast .toast-header i {
+            font-size: .6rem
+        }
+
+        .toast-container {
+            max-height: 100vh;
+            overflow-y: auto
+        }
+
+        .toast-container::-webkit-scrollbar {
+            width: 4px
+        }
+
+        .toast-container::-webkit-scrollbar-track {
+            background: transparent
+        }
+
+        .toast-container::-webkit-scrollbar-thumb {
+            background: var(--primary-white);
+            border-radius: 2px
+        }
+
+        .toast-container::-webkit-scrollbar-thumb:hover {
+            background: var(--dark-gray)
+        }
+
+        .toast.hiding {
+            animation: slideOutBottom .3s ease-in
+        }
+
+        @keyframes slideInBottom {
+            from {
+                transform: translateY(100%);
+                opacity: 0
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1
+            }
+        }
+
+        @keyframes slideOutBottom {
+            from {
+                transform: translateY(0);
+                opacity: 1
+            }
+            to {
+                transform: translateY(100%);
+                opacity: 0
+            }
+        }
+
         @media (max-width: 768px) {
             .card-body {
                 padding: 1rem
@@ -204,7 +335,9 @@
         }
     </style>
 </head>
+
 <body>
+    <div class="toast-container position-fixed bottom-0 start-0 p-2" style="z-index:9999;"></div>
     <!-- Header -->
     <div class="header">
         <div class="container">
@@ -228,24 +361,11 @@
     </div>
 
     <div class="container">
-        <!-- Flash Messages -->
-        <?php if (session()->getFlashdata('success')): ?>
-            <div class="alert alert-success alert-dismissible fade show">
-                <i class="fas fa-check-circle me-2"></i><?= session()->getFlashdata('success') ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
 
-        <?php if (session()->getFlashdata('error')): ?>
-            <div class="alert alert-danger alert-dismissible fade show">
-                <i class="fas fa-exclamation-circle me-2"></i><?= session()->getFlashdata('error') ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
 
         <div class="row">
             <!-- Order Summary -->
-            <div class="col-lg-8">
+            <div class="col-12">
                 <div class="card mb-4">
                     <div class="card-header">
                         <h4><i class="fas fa-receipt me-2"></i>Order Summary</h4>
@@ -286,83 +406,84 @@
             </div>
 
             <!-- Payment Form -->
-            <div class="col-lg-4">
-                <div class="card">
-                    <div class="card-header">
-                        <h4><i class="fas fa-credit-card me-2"></i>Payment</h4>
+            <div class="col-12">
+                <div class="card payment-card">
+                    <div class="card-header py-2">
+                        <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i>Payment</h5>
                     </div>
                     <div class="card-body">
                         <form method="post" action="<?= base_url('pos/process-checkout') ?>">
-                            <!-- Payment Methods -->
-                            <div class="mb-4">
-                                <label class="form-label">Payment Method</label>
-                                <div class="row g-3">
-                                    <div class="col-12">
-                                        <label class="payment-option w-100" for="cash">
-                                            <input type="radio" name="payment_method" value="cash" id="cash" required>
-                                            <i class="fas fa-money-bill-wave fa-2x text-success mb-2"></i>
-                                            <h6>Cash</h6>
-                                        </label>
+                            <div class="row g-3">
+                                <!-- Payment Methods -->
+                                <div class="col-md-4">
+                                    <label class="form-label mb-1">Payment Method</label>
+                                    <div class="row g-1">
+                                        <div class="col-4">
+                                            <label class="payment-option w-100" for="cash">
+                                                <input type="radio" name="payment_method" value="cash" id="cash" required>
+                                                <i class="fas fa-money-bill-wave text-success"></i>
+                                                <h6>Cash</h6>
+                                            </label>
+                                        </div>
+                                        <div class="col-4">
+                                            <label class="payment-option w-100" for="card">
+                                                <input type="radio" name="payment_method" value="card" id="card" required>
+                                                <i class="fas fa-credit-card text-primary"></i>
+                                                <h6>Card</h6>
+                                            </label>
+                                        </div>
+                                        <div class="col-4">
+                                            <label class="payment-option w-100" for="digital">
+                                                <input type="radio" name="payment_method" value="digital" id="digital" required>
+                                                <i class="fas fa-mobile-alt text-info"></i>
+                                                <h6>Digital</h6>
+                                            </label>
+                                        </div>
                                     </div>
-                                    <div class="col-12">
-                                        <label class="payment-option w-100" for="card">
-                                            <input type="radio" name="payment_method" value="card" id="card" required>
-                                            <i class="fas fa-credit-card fa-2x text-primary mb-2"></i>
-                                            <h6>Card</h6>
-                                        </label>
+                                </div>
+
+                                <!-- Customer Phone -->
+                                <div class="col-md-4">
+                                    <label for="customer_phone" class="form-label mb-1">
+                                        <i class="fas fa-phone me-1"></i>Customer Phone <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="tel" class="form-control form-control-sm" id="customer_phone" name="customer_phone" 
+                                           placeholder="09XX-XXX-XXXX" value="<?= old('customer_phone') ?>" required>
+                                    <div class="form-text small">
+                                        <i class="fas fa-sms me-1"></i>Receipt via SMS
                                     </div>
-                                    <div class="col-12">
-                                        <label class="payment-option w-100" for="digital">
-                                            <input type="radio" name="payment_method" value="digital" id="digital" required>
-                                            <i class="fas fa-mobile-alt fa-2x text-info mb-2"></i>
-                                            <h6>Digital Payment</h6>
-                                        </label>
+                                    <div id="phoneValidation" class="mt-1" style="display: none;"></div>
+                                </div>
+
+                                <!-- Total & Actions -->
+                                <div class="col-md-4">
+                                    <!-- Total Display -->
+                                    <div class="order-summary small mb-2">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span>Subtotal:</span>
+                                            <span>₱<?= number_format($cart_total, 2) ?></span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span>Tax:</span>
+                                            <span>₱0.00</span>
+                                        </div>
+                                        <hr class="my-1">
+                                        <div class="d-flex justify-content-between">
+                                            <strong>Total:</strong>
+                                            <strong class="text-success">₱<?= number_format($cart_total, 2) ?></strong>
+                                        </div>
+                                    </div>
+
+                                    <!-- Action Buttons -->
+                                    <div class="d-grid gap-1">
+                                        <button type="submit" class="btn btn-black btn-sm">
+                                            <i class="fas fa-check-circle me-1"></i>Process Payment
+                                        </button>
+                                        <a href="<?= base_url('pos/dashboard') ?>" class="btn btn-outline-black btn-sm">
+                                            <i class="fas fa-arrow-left me-1"></i>Continue Shopping
+                                        </a>
                                     </div>
                                 </div>
-                            </div>
-
-                            <!-- Customer Phone -->
-                            <div class="mb-4">
-                                <label for="customer_phone" class="form-label">
-                                    <i class="fas fa-phone me-1"></i>Customer Phone <span class="text-danger">*</span>
-                                </label>
-                                <input type="tel" class="form-control" id="customer_phone" name="customer_phone" 
-                                       placeholder="09XX-XXX-XXXX" value="<?= old('customer_phone') ?>" required>
-                                <div class="form-text">
-                                    <i class="fas fa-sms me-1"></i>Receipt will be sent via SMS
-                                </div>
-                                <div id="phoneValidation" class="mt-2" style="display: none;"></div>
-                            </div>
-
-                            <!-- Total Display -->
-                            <div class="order-summary mb-4">
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span>Subtotal:</span>
-                                    <span>₱<?= number_format($cart_total, 2) ?></span>
-                                </div>
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span>Tax:</span>
-                                    <span>₱0.00</span>
-                                </div>
-                                <div class="d-flex justify-content-between mb-2">
-                                    <span>Discount:</span>
-                                    <span>₱0.00</span>
-                                </div>
-                                <hr>
-                                <div class="d-flex justify-content-between">
-                                    <strong>Total:</strong>
-                                    <strong class="text-success fs-4">₱<?= number_format($cart_total, 2) ?></strong>
-                                </div>
-                            </div>
-
-                            <!-- Action Buttons -->
-                            <div class="d-grid gap-2">
-                                <button type="submit" class="btn btn-black btn-lg">
-                                    <i class="fas fa-check-circle me-2"></i>Process Payment
-                                </button>
-                                <a href="<?= base_url('pos/dashboard') ?>" class="btn btn-outline-black">
-                                    <i class="fas fa-arrow-left me-2"></i>Continue Shopping
-                                </a>
                             </div>
                         </form>
                     </div>
@@ -373,6 +494,158 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Toast Notification Configuration
+        const ToastConfig = {
+            maxToasts: 5,
+            loadingToastId: null
+        };
+
+        // Notification Service
+        const NotificationService = {
+            initializeFlashMessages() {
+                <?php if (session()->getFlashdata('success')): ?>
+                this.showNotification('<?= addslashes(session()->getFlashdata('success')) ?>', 'success');
+                <?php endif; ?>
+                <?php if (session()->getFlashdata('error')): ?>
+                this.showNotification('<?= addslashes(session()->getFlashdata('error')) ?>', 'error');
+                <?php endif; ?>
+                <?php if (session()->getFlashdata('validation_errors')): ?>
+                <?php 
+                $errors = session()->getFlashdata('validation_errors'); 
+                if (is_array($errors)) {
+                    $errorMessage = "Please fix the following errors:\n• " . implode("\n• ", array_values($errors));
+                } else {
+                    $errorMessage = "Validation errors occurred.";
+                }
+                ?>
+                this.showNotification('<?= addslashes($errorMessage) ?>', 'error');
+                <?php endif; ?>
+            },
+
+            showNotification(message, type = 'info') {
+                const container = document.querySelector('.toast-container');
+                if (!container) {
+                    console.error('Toast container not found');
+                    return;
+                }
+
+                const toasts = container.querySelectorAll('.toast');
+                if (toasts.length >= ToastConfig.maxToasts) {
+                    this.removeOldestToast(toasts);
+                }
+
+                const toastId = this.generateToastId();
+                const config = this.getToastConfig(type);
+                const html = this.buildToastHTML(toastId, config, message, type);
+
+                container.insertAdjacentHTML('beforeend', html);
+                return this.showToast(toastId, config, type);
+            },
+
+            removeOldestToast(toasts) {
+                const oldest = toasts[0];
+                const bsToast = bootstrap.Toast.getInstance(oldest);
+                if (bsToast) {
+                    bsToast.hide();
+                } else {
+                    oldest.remove();
+                }
+            },
+
+            generateToastId() {
+                return 'toast-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            },
+
+            getToastConfig(type) {
+                const configs = {
+                    'success': { bgClass: 'bg-success', icon: 'fas fa-check-circle', title: 'Success', delay: 4000 },
+                    'error': { bgClass: 'bg-danger', icon: 'fas fa-exclamation-circle', title: 'Error', delay: 6000 },
+                    'info': { bgClass: 'bg-info', icon: 'fas fa-info-circle', title: 'Information', delay: 5000 },
+                    'loading': { bgClass: 'bg-white text-dark', icon: 'fas fa-spinner fa-spin', title: 'Loading', delay: 0 }
+                };
+                return configs[type] || configs['info'];
+            },
+
+            buildToastHTML(toastId, config, message, type) {
+                const closeButton = type !== 'loading' 
+                    ? '<button type="button" class="btn-close" data-bs-dismiss="toast"></button>' 
+                    : '';
+
+                return `<div class="toast ${config.bgClass}" id="${toastId}" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header">
+                        <i class="${config.icon} me-2"></i>
+                        <strong class="me-auto">${config.title}</strong>
+                        ${closeButton}
+                    </div>
+                    <div class="toast-body">${message}</div>
+                </div>`;
+            },
+
+            showToast(toastId, config, type) {
+                const toastEl = document.getElementById(toastId);
+                const toast = new bootstrap.Toast(toastEl, {
+                    delay: config.delay,
+                    autohide: config.delay > 0
+                });
+
+                toastEl.addEventListener('hidden.bs.toast', () => {
+                    toastEl.remove();
+                    if (ToastConfig.loadingToastId === toastId) {
+                        ToastConfig.loadingToastId = null;
+                    }
+                });
+
+                toast.show();
+                toastEl.style.animation = 'slideInBottom 0.3s ease-out';
+                
+                if (type === 'loading') {
+                    ToastConfig.loadingToastId = toastId;
+                }
+                
+                return { toast, toastId };
+            },
+
+            showSuccess(message) {
+                this.showNotification(message, 'success');
+            },
+
+            showError(message) {
+                this.showNotification(message, 'error');
+            },
+
+            showInfo(message) {
+                this.showNotification(message, 'info');
+            },
+
+            showLoading(message) {
+                this.hideLoading();
+                return this.showNotification(message, 'loading');
+            },
+
+            hideLoading() {
+                if (ToastConfig.loadingToastId) {
+                    const toast = document.getElementById(ToastConfig.loadingToastId);
+                    if (toast) {
+                        const bs = bootstrap.Toast.getInstance(toast);
+                        if (bs) bs.hide();
+                    }
+                    ToastConfig.loadingToastId = null;
+                }
+            },
+
+            clearAll() {
+                document.querySelectorAll('.toast').forEach(t => {
+                    const bs = bootstrap.Toast.getInstance(t);
+                    if (bs) bs.hide();
+                });
+            }
+        };
+
+        // Initialize notifications on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            NotificationService.initializeFlashMessages();
+        });
+
         // Payment method selection
         document.querySelectorAll('.payment-option').forEach(option => {
             option.addEventListener('click', function() {
@@ -459,20 +732,20 @@
             
             if (!paymentMethod) {
                 e.preventDefault();
-                alert('Please select a payment method');
+                NotificationService.showError('Please select a payment method');
                 return;
             }
             
             if (!phone) {
                 e.preventDefault();
-                alert('Please enter a customer phone number');
+                NotificationService.showError('Please enter a customer phone number');
                 phoneInput.focus();
                 return;
             }
             
             if (phoneInput.classList.contains('is-invalid')) {
                 e.preventDefault();
-                alert('Please enter a valid phone number');
+                NotificationService.showError('Please enter a valid phone number');
                 phoneInput.focus();
                 return;
             }

@@ -33,11 +33,25 @@ class PosController extends BaseController
      */
     public function dashboard()
     {
+        // Get dashboard statistics
+        $dailySales = $this->transactionModel->getDailySales();
+        $weeklySales = $this->transactionModel->getWeeklySales();
+        $weeklyTransactions = $this->transactionModel->getWeeklyTransactions();
+        $monthlySales = $this->transactionModel->getMonthlySales();
+        $recentTransactions = $this->transactionModel->getRecentTransactions(5);
+        $lowStockProducts = $this->productModel->getLowStockProducts(10);
+        $totalProducts = $this->productModel->getTotalProducts();
+        
         $data = [
             'title' => 'POS Dashboard',
-            'recentTransactions' => $this->transactionModel->getRecentTransactions(5),
-            'dailySales' => $this->transactionModel->getDailySales(),
-            'lowStockProducts' => $this->productModel->getLowStockProducts(5),
+            'recentTransactions' => $recentTransactions,
+            'dailySales' => $dailySales,
+            'weeklySales' => $weeklySales,
+            'weeklyTransactions' => $weeklyTransactions,
+            'monthlySales' => $monthlySales,
+            'lowStockProducts' => $lowStockProducts,
+            'lowStockCount' => count($lowStockProducts),
+            'totalProducts' => $totalProducts,
             'cart' => $this->session->get('cart') ?? []
         ];
         

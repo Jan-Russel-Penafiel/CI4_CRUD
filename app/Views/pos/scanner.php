@@ -244,6 +244,109 @@
             font-size: .8rem
         }
 
+        .toast {
+            background-color: var(--primary-black);
+            border: 2px solid var(--primary-white);
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, .1);
+            font-size: .65rem;
+            min-width: 200px;
+            max-width: 280px;
+            margin-bottom: .25rem;
+            color: var(--primary-white)
+        }
+
+        .toast-header {
+            background-color: var(--primary-black);
+            border-bottom: 1px solid var(--primary-white);
+            padding: .3rem .5rem;
+            font-weight: 600;
+            color: var(--primary-white);
+            font-size: .6rem
+        }
+
+        .toast-body {
+            padding: .4rem .5rem;
+            color: var(--primary-white);
+            background-color: var(--primary-black);
+            font-size: .65rem;
+            line-height: 1.2
+        }
+
+        .toast.bg-success,
+        .toast.bg-danger,
+        .toast.bg-info,
+        .toast.bg-primary {
+            background-color: var(--primary-black);
+            border-color: var(--primary-white)
+        }
+
+        .toast.bg-success .toast-header,
+        .toast.bg-danger .toast-header,
+        .toast.bg-info .toast-header,
+        .toast.bg-primary .toast-header {
+            background-color: var(--primary-black);
+            color: var(--primary-white)
+        }
+
+        .toast .btn-close {
+            font-size: .5rem;
+            padding: .2rem;
+            filter: invert(1)
+        }
+
+        .toast .toast-header i {
+            font-size: .6rem
+        }
+
+        .toast-container {
+            max-height: 100vh;
+            overflow-y: auto
+        }
+
+        .toast-container::-webkit-scrollbar {
+            width: 4px
+        }
+
+        .toast-container::-webkit-scrollbar-track {
+            background: transparent
+        }
+
+        .toast-container::-webkit-scrollbar-thumb {
+            background: var(--primary-white);
+            border-radius: 2px
+        }
+
+        .toast-container::-webkit-scrollbar-thumb:hover {
+            background: var(--dark-gray)
+        }
+
+        .toast.hiding {
+            animation: slideOutBottom .3s ease-in
+        }
+
+        @keyframes slideInBottom {
+            from {
+                transform: translateY(100%);
+                opacity: 0
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1
+            }
+        }
+
+        @keyframes slideOutBottom {
+            from {
+                transform: translateY(0);
+                opacity: 1
+            }
+            to {
+                transform: translateY(100%);
+                opacity: 0
+            }
+        }
+
         @media (max-width: 768px) {
             #scanner-container {
                 max-width: 100%;
@@ -391,6 +494,120 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
     <script>
+        // Toast Notification Configuration
+        const ToastConfig = {
+            maxToasts: 5,
+            loadingToastId: null
+        };
+
+        // Notification Service
+        const NotificationService = {
+            initializeFlashMessages() {
+                <?php if (session()->getFlashdata('success')): ?>
+                this.showNotification('<?= addslashes(session()->getFlashdata('success')) ?>', 'success');
+                <?php endif; ?>
+                <?php if (session()->getFlashdata('error')): ?>
+                this.showNotification('<?= addslashes(session()->getFlashdata('error')) ?>', 'error');
+                <?php endif; ?>
+            },
+
+            showNotification(message, type = 'info') {
+                const container = document.querySelector('.toast-container');
+                if (!container) {
+                    console.error('Toast container not found');
+                    return;
+                }
+
+                const toasts = container.querySelectorAll('.toast');
+                if (toasts.length >= ToastConfig.maxToasts) {
+                    this.removeOldestToast(toasts);
+                }
+
+                const toastId = this.generateToastId();
+                const config = this.getToastConfig(type);
+                const html = this.buildToastHTML(toastId, config, message, type);
+
+                container.insertAdjacentHTML('beforeend', html);
+                return this.showToast(toastId, config, type);
+            },
+
+            removeOldestToast(toasts) {
+                const oldest = toasts[0];
+                const bsToast = bootstrap.Toast.getInstance(oldest);
+                if (bsToast) {
+                    bsToast.hide();
+                } else {
+                    oldest.remove();
+                }
+            },
+
+            generateToastId() {
+                return 'toast-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            },
+
+            getToastConfig(type) {
+                const configs = {
+                    'success': { bgClass: 'bg-success', icon: 'fas fa-check-circle', title: 'Success', delay: 4000 },
+                    'error': { bgClass: 'bg-danger', icon: 'fas fa-exclamation-circle', title: 'Error', delay: 6000 },
+                    'info': { bgClass: 'bg-info', icon: 'fas fa-info-circle', title: 'Information', delay: 5000 },
+                    'loading': { bgClass: 'bg-white text-dark', icon: 'fas fa-spinner fa-spin', title: 'Loading', delay: 0 }
+                };
+                return configs[type] || configs['info'];
+            },
+
+            buildToastHTML(toastId, config, message, type) {
+                const closeButton = type !== 'loading' 
+                    ? '<button type="button" class="btn-close" data-bs-dismiss="toast"></button>' 
+                    : '';
+
+                return `<div class="toast ${config.bgClass}" id="${toastId}" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header">
+                        <i class="${config.icon} me-2"></i>
+                        <strong class="me-auto">${config.title}</strong>
+                        ${closeButton}
+                    </div>
+                    <div class="toast-body">${message}</div>
+                </div>`;
+            },
+
+            showToast(toastId, config, type) {
+                const toastEl = document.getElementById(toastId);
+                const toast = new bootstrap.Toast(toastEl, {
+                    delay: config.delay,
+                    autohide: config.delay > 0
+                });
+
+                toastEl.addEventListener('hidden.bs.toast', () => {
+                    toastEl.remove();
+                    if (ToastConfig.loadingToastId === toastId) {
+                        ToastConfig.loadingToastId = null;
+                    }
+                });
+
+                toast.show();
+                toastEl.style.animation = 'slideInBottom 0.3s ease-out';
+                
+                if (type === 'loading') {
+                    ToastConfig.loadingToastId = toastId;
+                }
+                
+                return { toast, toastId };
+            },
+
+            showSuccess(message) {
+                this.showNotification(message, 'success');
+            },
+
+            showError(message) {
+                this.showNotification(message, 'error');
+            }
+        };
+
+        // Initialize notifications on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            NotificationService.initializeFlashMessages();
+        });
+
         let stream = null;
         let scanning = false;
         const video = document.getElementById('scanner');
@@ -587,7 +804,7 @@
             const qrData = document.getElementById('manualQrData').value.trim();
             
             if (!qrData) {
-                alert('Please enter QR code data');
+                NotificationService.showError('Please enter QR code data');
                 return;
             }
             

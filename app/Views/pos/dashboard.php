@@ -199,6 +199,109 @@
             border-bottom: none
         }
 
+        .toast {
+            background-color: var(--primary-black);
+            border: 2px solid var(--primary-white);
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, .1);
+            font-size: .65rem;
+            min-width: 200px;
+            max-width: 280px;
+            margin-bottom: .25rem;
+            color: var(--primary-white)
+        }
+
+        .toast-header {
+            background-color: var(--primary-black);
+            border-bottom: 1px solid var(--primary-white);
+            padding: .3rem .5rem;
+            font-weight: 600;
+            color: var(--primary-white);
+            font-size: .6rem
+        }
+
+        .toast-body {
+            padding: .4rem .5rem;
+            color: var(--primary-white);
+            background-color: var(--primary-black);
+            font-size: .65rem;
+            line-height: 1.2
+        }
+
+        .toast.bg-success,
+        .toast.bg-danger,
+        .toast.bg-info,
+        .toast.bg-primary {
+            background-color: var(--primary-black);
+            border-color: var(--primary-white)
+        }
+
+        .toast.bg-success .toast-header,
+        .toast.bg-danger .toast-header,
+        .toast.bg-info .toast-header,
+        .toast.bg-primary .toast-header {
+            background-color: var(--primary-black);
+            color: var(--primary-white)
+        }
+
+        .toast .btn-close {
+            font-size: .5rem;
+            padding: .2rem;
+            filter: invert(1)
+        }
+
+        .toast .toast-header i {
+            font-size: .6rem
+        }
+
+        .toast-container {
+            max-height: 100vh;
+            overflow-y: auto
+        }
+
+        .toast-container::-webkit-scrollbar {
+            width: 4px
+        }
+
+        .toast-container::-webkit-scrollbar-track {
+            background: transparent
+        }
+
+        .toast-container::-webkit-scrollbar-thumb {
+            background: var(--primary-white);
+            border-radius: 2px
+        }
+
+        .toast-container::-webkit-scrollbar-thumb:hover {
+            background: var(--dark-gray)
+        }
+
+        .toast.hiding {
+            animation: slideOutBottom .3s ease-in
+        }
+
+        @keyframes slideInBottom {
+            from {
+                transform: translateY(100%);
+                opacity: 0
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1
+            }
+        }
+
+        @keyframes slideOutBottom {
+            from {
+                transform: translateY(0);
+                opacity: 1
+            }
+            to {
+                transform: translateY(100%);
+                opacity: 0
+            }
+        }
+
         .navbar-brand {
             font-weight: 600;
             font-size: 1.1rem
@@ -295,6 +398,7 @@
     </style>
 </head>
 <body>
+    <div class="toast-container position-fixed bottom-0 start-0 p-2" style="z-index:9999;"></div>
     <!-- Header -->
     <div class="header">
         <div class="container">
@@ -325,20 +429,7 @@
     </div>
 
     <div class="container">
-        <!-- Flash Messages -->
-        <?php if (session()->getFlashdata('success')): ?>
-            <div class="alert alert-success alert-dismissible fade show">
-                <i class="fas fa-check-circle me-2"></i><?= session()->getFlashdata('success') ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
 
-        <?php if (session()->getFlashdata('error')): ?>
-            <div class="alert alert-danger alert-dismissible fade show">
-                <i class="fas fa-exclamation-circle me-2"></i><?= session()->getFlashdata('error') ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
 
         <!-- Sales Summary Cards with Charts -->
         <div class="row mb-4">
@@ -349,13 +440,13 @@
                         <h6 class="mb-0">Today's Sales</h6>
                     </div>
                     <div class="card-body text-center">
-                        <div class="stats-value">₱<?= number_format($dailySales['total_sales'], 2) ?></div>
-                        <div class="stats-label">Average: ₱<?= number_format($dailySales['average_sale'], 2) ?></div>
+                        <div class="stats-value">₱<?= number_format($dailySales['today_sales'], 2) ?></div>
+                        <div class="stats-label">Today</div>
                         <div class="chart-container">
                             <canvas id="salesChart"></canvas>
                         </div>
                         <div class="chart-legend">
-                            <small class="text-muted">Daily Sales Trend</small>
+                            <small class="text-muted">Weekly Sales Trend</small>
                         </div>
                     </div>
                 </div>
@@ -367,13 +458,13 @@
                         <h6 class="mb-0">Transactions</h6>
                     </div>
                     <div class="card-body text-center">
-                        <div class="stats-value"><?= $dailySales['total_transactions'] ?></div>
+                        <div class="stats-value"><?= $dailySales['today_transactions'] ?></div>
                         <div class="stats-label">Today</div>
                         <div class="chart-container">
                             <canvas id="transactionsChart"></canvas>
                         </div>
                         <div class="chart-legend">
-                            <small class="text-muted">Transaction Distribution</small>
+                            <small class="text-muted">Weekly Transactions</small>
                         </div>
                     </div>
                 </div>
@@ -385,7 +476,7 @@
                         <h6 class="mb-0">Low Stock Alert</h6>
                     </div>
                     <div class="card-body text-center">
-                        <div class="stats-value"><?= count($lowStockProducts) ?></div>
+                        <div class="stats-value"><?= $lowStockCount ?></div>
                         <div class="stats-label">Products</div>
                         <div class="chart-container">
                             <canvas id="stockChart"></canvas>
@@ -459,8 +550,8 @@
 
         <!-- Recent Transactions & Low Stock -->
         <div class="row">
-            <div class="col-md-8">
-                <div class="card">
+            <div class="col-12">
+                <div class="card mb-4">
                     <div class="card-header">
                         <h5 class="mb-0"><i class="fas fa-history me-2"></i>Recent Transactions</h5>
                     </div>
@@ -508,25 +599,32 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
+        </div>
+
+        <!-- Low Stock Alert (Horizontal Rectangle) -->
+        <div class="row">
+            <div class="col-12">
                 <div class="card">
                     <div class="card-header">
                         <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Low Stock Alert</h5>
                     </div>
                     <div class="card-body">
                         <?php if (!empty($lowStockProducts)): ?>
-                        <?php foreach ($lowStockProducts as $product): ?>
-                        <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
-                            <div>
-                                <small class="fw-bold"><?= esc($product['product_name']) ?></small>
-                                <br>
-                                <small class="text-danger">Stock: <?= $product['stock_quantity'] ?></small>
+                        <div class="row g-2">
+                            <?php foreach ($lowStockProducts as $product): ?>
+                            <div class="col-md-3 col-sm-4 col-6">
+                                <div class="d-flex justify-content-between align-items-center p-2 border rounded bg-light">
+                                    <div class="flex-grow-1">
+                                        <small class="fw-bold d-block text-truncate"><?= esc($product['product_name']) ?></small>
+                                        <small class="text-danger">Stock: <?= $product['stock_quantity'] ?></small>
+                                    </div>
+                                    <a href="<?= base_url('products/edit/' . $product['id']) ?>" class="btn btn-sm btn-outline-black ms-2">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </div>
                             </div>
-                            <a href="<?= base_url('products/edit/' . $product['id']) ?>" class="btn btn-sm btn-outline-black">
-                                <i class="fas fa-edit"></i>
-                            </a>
+                            <?php endforeach; ?>
                         </div>
-                        <?php endforeach; ?>
                         <?php else: ?>
                         <p class="text-muted text-center mb-0">All products have sufficient stock</p>
                         <?php endif; ?>
@@ -557,8 +655,156 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        // Toast Notification Configuration
+        const ToastConfig = {
+            maxToasts: 5,
+            loadingToastId: null
+        };
+
+        // Notification Service
+        const NotificationService = {
+            initializeFlashMessages() {
+                <?php if (session()->getFlashdata('success')): ?>
+                this.showNotification('<?= addslashes(session()->getFlashdata('success')) ?>', 'success');
+                <?php endif; ?>
+                <?php if (session()->getFlashdata('error')): ?>
+                this.showNotification('<?= addslashes(session()->getFlashdata('error')) ?>', 'error');
+                <?php endif; ?>
+                <?php if (session()->getFlashdata('validation_errors')): ?>
+                <?php 
+                $errors = session()->getFlashdata('validation_errors'); 
+                if (is_array($errors)) {
+                    $errorMessage = "Please fix the following errors:\n• " . implode("\n• ", array_values($errors));
+                } else {
+                    $errorMessage = "Validation errors occurred.";
+                }
+                ?>
+                this.showNotification('<?= addslashes($errorMessage) ?>', 'error');
+                <?php endif; ?>
+            },
+
+            showNotification(message, type = 'info') {
+                const container = document.querySelector('.toast-container');
+                if (!container) {
+                    console.error('Toast container not found');
+                    return;
+                }
+
+                const toasts = container.querySelectorAll('.toast');
+                if (toasts.length >= ToastConfig.maxToasts) {
+                    this.removeOldestToast(toasts);
+                }
+
+                const toastId = this.generateToastId();
+                const config = this.getToastConfig(type);
+                const html = this.buildToastHTML(toastId, config, message, type);
+
+                container.insertAdjacentHTML('beforeend', html);
+                return this.showToast(toastId, config, type);
+            },
+
+            removeOldestToast(toasts) {
+                const oldest = toasts[0];
+                const bsToast = bootstrap.Toast.getInstance(oldest);
+                if (bsToast) {
+                    bsToast.hide();
+                } else {
+                    oldest.remove();
+                }
+            },
+
+            generateToastId() {
+                return 'toast-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+            },
+
+            getToastConfig(type) {
+                const configs = {
+                    'success': { bgClass: 'bg-success', icon: 'fas fa-check-circle', title: 'Success', delay: 4000 },
+                    'error': { bgClass: 'bg-danger', icon: 'fas fa-exclamation-circle', title: 'Error', delay: 6000 },
+                    'info': { bgClass: 'bg-info', icon: 'fas fa-info-circle', title: 'Information', delay: 5000 },
+                    'loading': { bgClass: 'bg-white text-dark', icon: 'fas fa-spinner fa-spin', title: 'Loading', delay: 0 }
+                };
+                return configs[type] || configs['info'];
+            },
+
+            buildToastHTML(toastId, config, message, type) {
+                const closeButton = type !== 'loading' 
+                    ? '<button type="button" class="btn-close" data-bs-dismiss="toast"></button>' 
+                    : '';
+
+                return `<div class="toast ${config.bgClass}" id="${toastId}" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header">
+                        <i class="${config.icon} me-2"></i>
+                        <strong class="me-auto">${config.title}</strong>
+                        ${closeButton}
+                    </div>
+                    <div class="toast-body">${message}</div>
+                </div>`;
+            },
+
+            showToast(toastId, config, type) {
+                const toastEl = document.getElementById(toastId);
+                const toast = new bootstrap.Toast(toastEl, {
+                    delay: config.delay,
+                    autohide: config.delay > 0
+                });
+
+                toastEl.addEventListener('hidden.bs.toast', () => {
+                    toastEl.remove();
+                    if (ToastConfig.loadingToastId === toastId) {
+                        ToastConfig.loadingToastId = null;
+                    }
+                });
+
+                toast.show();
+                toastEl.style.animation = 'slideInBottom 0.3s ease-out';
+                
+                if (type === 'loading') {
+                    ToastConfig.loadingToastId = toastId;
+                }
+                
+                return { toast, toastId };
+            },
+
+            showSuccess(message) {
+                this.showNotification(message, 'success');
+            },
+
+            showError(message) {
+                this.showNotification(message, 'error');
+            },
+
+            showInfo(message) {
+                this.showNotification(message, 'info');
+            },
+
+            showLoading(message) {
+                this.hideLoading();
+                return this.showNotification(message, 'loading');
+            },
+
+            hideLoading() {
+                if (ToastConfig.loadingToastId) {
+                    const toast = document.getElementById(ToastConfig.loadingToastId);
+                    if (toast) {
+                        const bs = bootstrap.Toast.getInstance(toast);
+                        if (bs) bs.hide();
+                    }
+                    ToastConfig.loadingToastId = null;
+                }
+            },
+
+            clearAll() {
+                document.querySelectorAll('.toast').forEach(t => {
+                    const bs = bootstrap.Toast.getInstance(t);
+                    if (bs) bs.hide();
+                });
+            }
+        };
+
         // Chart.js Configuration for Dashboard Statistics
         document.addEventListener('DOMContentLoaded', function() {
+            NotificationService.initializeFlashMessages();
             initializeCharts();
         });
 
@@ -587,12 +833,10 @@
             new Chart(salesCtx, {
                 type: 'line',
                 data: {
-                    labels: ['6 days ago', '5 days ago', '4 days ago', '3 days ago', '2 days ago', 'Yesterday', 'Today'],
+                    labels: [<?php echo '"' . implode('", "', array_keys($weeklySales)) . '"'; ?>],
                     datasets: [{
                         label: 'Sales',
-                        data: [
-                            <?= isset($dailySales['weekly_data']) ? implode(',', $dailySales['weekly_data']) : '15, 18, 12, 25, 30, 20, ' . $dailySales['total_sales'] ?>,
-                        ],
+                        data: [<?php echo implode(', ', array_values($weeklySales)); ?>],
                         borderColor: '#000',
                         backgroundColor: 'rgba(0, 0, 0, 0.1)',
                         borderWidth: 2,
@@ -621,20 +865,18 @@
             new Chart(transactionsCtx, {
                 type: 'bar',
                 data: {
-                    labels: ['Morning', 'Afternoon', 'Evening', 'Night'],
+                    labels: [<?php echo '"' . implode('", "', array_keys($weeklyTransactions)) . '"'; ?>],
                     datasets: [{
                         label: 'Transactions',
-                        data: [
-                            Math.ceil(<?= $dailySales['total_transactions'] ?> * 0.4),
-                            Math.ceil(<?= $dailySales['total_transactions'] ?> * 0.35),
-                            Math.ceil(<?= $dailySales['total_transactions'] ?> * 0.2),
-                            Math.ceil(<?= $dailySales['total_transactions'] ?> * 0.05)
-                        ],
+                        data: [<?php echo implode(', ', array_values($weeklyTransactions)); ?>],
                         backgroundColor: [
                             'rgba(0, 0, 0, 0.8)',
+                            'rgba(0, 0, 0, 0.7)',
                             'rgba(0, 0, 0, 0.6)',
+                            'rgba(0, 0, 0, 0.5)',
                             'rgba(0, 0, 0, 0.4)',
-                            'rgba(0, 0, 0, 0.2)'
+                            'rgba(0, 0, 0, 0.3)',
+                            'rgba(0, 0, 0, 0.9)'
                         ],
                         borderColor: '#000',
                         borderWidth: 1
@@ -645,8 +887,8 @@
 
             // Stock Chart (Doughnut Chart)
             const stockCtx = document.getElementById('stockChart').getContext('2d');
-            const lowStockCount = <?= count($lowStockProducts) ?>;
-            const totalProducts = <?= isset($totalProducts) ? $totalProducts : 50 ?>;
+            const lowStockCount = <?= $lowStockCount ?>;
+            const totalProducts = <?= $totalProducts ?>;
             const adequateStock = Math.max(0, totalProducts - lowStockCount);
             
             new Chart(stockCtx, {
@@ -713,14 +955,15 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    NotificationService.showSuccess('Cart updated successfully');
                     location.reload();
                 } else {
-                    alert(data.message || 'Error updating cart');
+                    NotificationService.showError(data.message || 'Error updating cart');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Error updating cart');
+                NotificationService.showError('Error updating cart');
             });
         }
 
@@ -806,14 +1049,15 @@
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
+                    NotificationService.showSuccess('Product added to cart successfully');
                     location.reload();
                 } else {
-                    alert(data.message || 'Error adding product');
+                    NotificationService.showError(data.message || 'Error adding product');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('Error adding product');
+                NotificationService.showError('Error adding product');
             });
         }
 

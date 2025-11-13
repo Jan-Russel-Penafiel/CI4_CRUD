@@ -122,12 +122,144 @@ class TransactionModel extends Model
     }
     
     /**
-     * Get daily sales summary
+     * Get daily sales summary for dashboard
      * 
      * @param string $date Date in Y-m-d format
-     * @return array Sales summary
+     * @return array Sales summary with simple structure for dashboard
      */
     public function getDailySales($date = null)
+    {
+        if (!$date) {
+            $date = date('Y-m-d');
+        }
+        
+        // Get today's sales
+        $todaySales = $this->selectSum('total_amount')
+                          ->where('DATE(created_at)', $date)
+                          ->first();
+        
+        // Get today's transaction count
+        $todayTransactions = $this->where('DATE(created_at)', $date)
+                                 ->countAllResults();
+        
+        return [
+            'today_sales' => $todaySales['total_amount'] ?? 0.00,
+            'today_transactions' => $todayTransactions,
+        ];
+    }
+
+    /**
+     * Get weekly sales data for charts
+     * 
+     * @return array Weekly sales data
+     */
+    public function getWeeklySales()
+    {
+        $weekAgo = date('Y-m-d', strtotime('-6 days'));
+        $today = date('Y-m-d');
+        
+        $weeklySales = $this->select('DATE(created_at) as date, SUM(total_amount) as daily_total')
+                           ->where('DATE(created_at) >=', $weekAgo)
+                           ->where('DATE(created_at) <=', $today)
+                           ->groupBy('DATE(created_at)')
+                           ->orderBy('DATE(created_at)', 'ASC')
+                           ->findAll();
+        
+        // Create array with all 7 days
+        $salesData = [];
+        $days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        
+        for ($i = 6; $i >= 0; $i--) {
+            $date = date('Y-m-d', strtotime("-$i days"));
+            $dayName = $days[date('w', strtotime($date))];
+            $salesData[$dayName] = 0;
+        }
+        
+        // Fill in actual sales data
+        foreach ($weeklySales as $sale) {
+            $dayName = $days[date('w', strtotime($sale['date']))];
+            $salesData[$dayName] = (float)$sale['daily_total'];
+        }
+        
+        return $salesData;
+    }
+
+    /**
+     * Get weekly transactions count for charts
+     * 
+     * @return array Weekly transactions count
+     */
+    public function getWeeklyTransactions()
+    {
+        $weekAgo = date('Y-m-d', strtotime('-6 days'));
+        $today = date('Y-m-d');
+        
+        $weeklyTransactions = $this->select('DATE(created_at) as date, COUNT(*) as daily_count')
+                                  ->where('DATE(created_at) >=', $weekAgo)
+                                  ->where('DATE(created_at) <=', $today)
+                                  ->groupBy('DATE(created_at)')
+                                  ->orderBy('DATE(created_at)', 'ASC')
+                                  ->findAll();
+        
+        // Create array with all 7 days
+        $transactionData = [];
+        $days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        
+        for ($i = 6; $i >= 0; $i--) {
+            $date = date('Y-m-d', strtotime("-$i days"));
+            $dayName = $days[date('w', strtotime($date))];
+            $transactionData[$dayName] = 0;
+        }
+        
+        // Fill in actual transaction data
+        foreach ($weeklyTransactions as $transaction) {
+            $dayName = $days[date('w', strtotime($transaction['date']))];
+            $transactionData[$dayName] = (int)$transaction['daily_count'];
+        }
+        
+        return $transactionData;
+    }
+
+    /**
+     * Get monthly sales data for charts
+     * 
+     * @return array Monthly sales data
+     */
+    public function getMonthlySales()
+    {
+        $monthAgo = date('Y-m-d', strtotime('-29 days'));
+        $today = date('Y-m-d');
+        
+        $monthlySales = $this->select('DATE(created_at) as date, SUM(total_amount) as daily_total')
+                            ->where('DATE(created_at) >=', $monthAgo)
+                            ->where('DATE(created_at) <=', $today)
+                            ->groupBy('DATE(created_at)')
+                            ->orderBy('DATE(created_at)', 'ASC')
+                            ->findAll();
+        
+        // Create array for the last 30 days
+        $salesData = [];
+        for ($i = 29; $i >= 0; $i--) {
+            $date = date('m/d', strtotime("-$i days"));
+            $salesData[$date] = 0;
+        }
+        
+        // Fill in actual sales data
+        foreach ($monthlySales as $sale) {
+            $date = date('m/d', strtotime($sale['date']));
+            $salesData[$date] = (float)$sale['daily_total'];
+        }
+        
+        return $salesData;
+    }
+
+    /**
+     * Get detailed daily sales summary (legacy method for backward compatibility)
+     * 
+     * @param string $date Date in Y-m-d format
+     * @return array Detailed sales summary
+     */
+    public function getDetailedDailySales($date = null)
     {
         if (!$date) {
             $date = date('Y-m-d');
