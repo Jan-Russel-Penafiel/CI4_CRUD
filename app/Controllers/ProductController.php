@@ -97,6 +97,23 @@ class ProductController extends BaseController
             'stock_quantity' => $this->request->getPost('stock_quantity') ?: 0
         ];
         
+        // Handle image upload
+        $image = $this->request->getFile('product_image');
+        if ($image && $image->isValid() && !$image->hasMoved()) {
+            $validationRule = [
+                'product_image' => [
+                    'label' => 'Product Image',
+                    'rules' => 'uploaded[product_image]|is_image[product_image]|mime_in[product_image,image/jpg,image/jpeg,image/png,image/gif]|max_size[product_image,2048]'
+                ]
+            ];
+            
+            if ($this->validate($validationRule)) {
+                $newName = $image->getRandomName();
+                $image->move(WRITEPATH . 'uploads', $newName);
+                $data['product_image'] = $newName;
+            }
+        }
+        
         try {
             $productId = $this->productModel->createProduct($data);
             if ($productId) {
@@ -176,6 +193,31 @@ class ProductController extends BaseController
             'price' => $this->request->getPost('price'),
             'stock_quantity' => $this->request->getPost('stock_quantity') ?: $product['stock_quantity']
         ];
+        
+        // Handle image upload
+        $image = $this->request->getFile('product_image');
+        if ($image && $image->isValid() && !$image->hasMoved()) {
+            $validationRule = [
+                'product_image' => [
+                    'label' => 'Product Image',
+                    'rules' => 'uploaded[product_image]|is_image[product_image]|mime_in[product_image,image/jpg,image/jpeg,image/png,image/gif]|max_size[product_image,2048]'
+                ]
+            ];
+            
+            if ($this->validate($validationRule)) {
+                // Delete old image if exists
+                if (!empty($product['product_image'])) {
+                    $oldImagePath = WRITEPATH . 'uploads/' . $product['product_image'];
+                    if (file_exists($oldImagePath)) {
+                        unlink($oldImagePath);
+                    }
+                }
+                
+                $newName = $image->getRandomName();
+                $image->move(WRITEPATH . 'uploads', $newName);
+                $data['product_image'] = $newName;
+            }
+        }
         
         try {
             if ($this->productModel->updateProduct($id, $data)) {
@@ -579,4 +621,19 @@ class ProductController extends BaseController
             return $this->response->setStatusCode(500)->setJSON(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
         }
     }
+    
+    public function serveImage($filename)
+    {
+        $filepath = WRITEPATH . 'uploads/' . $filename;
+        
+        if (!file_exists($filepath)) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+        
+        $mimeType = mime_content_type($filepath);
+        return $this->response
+            ->setContentType($mimeType)
+            ->setBody(file_get_contents($filepath));
+    }
 }
+

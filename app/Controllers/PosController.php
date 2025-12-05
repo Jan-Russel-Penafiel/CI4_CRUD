@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\ProductModel;
 use App\Models\TransactionModel;
 use App\Models\TransactionItemModel;
+use App\Models\UserModel;
 use App\Libraries\QrCodeService;
 use App\Libraries\SmsService;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -14,6 +15,7 @@ class PosController extends BaseController
     protected $productModel;
     protected $transactionModel;
     protected $transactionItemModel;
+    protected $userModel;
     protected $qrCodeService;
     protected $smsService;
     protected $session;
@@ -23,6 +25,7 @@ class PosController extends BaseController
         $this->productModel = new ProductModel();
         $this->transactionModel = new TransactionModel();
         $this->transactionItemModel = new TransactionItemModel();
+        $this->userModel = new UserModel();
         $this->qrCodeService = new QrCodeService();
         $this->smsService = new SmsService();
         $this->session = session();
@@ -204,6 +207,23 @@ class PosController extends BaseController
     }
     
     /**
+     * Get cart count for AJAX updates
+     */
+    public function cartCount()
+    {
+        if (!$this->request->isAJAX()) {
+            return redirect()->to('/pos/dashboard');
+        }
+        
+        $cart = $this->session->get('cart') ?? [];
+        
+        return $this->response->setJSON([
+            'success' => true,
+            'count' => count($cart)
+        ]);
+    }
+    
+    /**
      * Checkout page
      */
     public function checkout()
@@ -306,12 +326,31 @@ class PosController extends BaseController
             // Clear cart
             $this->session->remove('cart');
             
-            // Send SMS if phone number provided
-            if ($customerPhone) {
-                $this->sendReceiptSms($transactionId);
+            // Check if customer already has transactions (existing customer)
+            $isExistingCustomer = $this->transactionModel
+                ->where('customer_phone', $customerPhone)
+                ->where('id !=', $transactionId)
+                ->countAllResults() > 0;
+            
+            // Create user account automatically only for new customers
+            $userCreated = false;
+            $userCredentials = null;
+            if ($customerPhone && !$isExistingCustomer) {
+                $userCredentials = $this->createUserAccount($customerPhone);
+                $userCreated = $userCredentials !== false;
             }
             
-            return redirect()->to('/pos/receipt/' . $transactionId)->with('success', 'Transaction completed successfully');
+            // Send SMS if phone number provided
+            if ($customerPhone) {
+                $this->sendReceiptSms($transactionId, $userCredentials);
+            }
+            
+            $successMessage = 'Transaction completed successfully';
+            if ($userCreated) {
+                $successMessage .= '. User account created - Username: ' . $userCredentials['username'] . ', Password: ' . $userCredentials['password'];
+            }
+            
+            return redirect()->to('/pos/receipt/' . $transactionId)->with('success', $successMessage);
             
         } catch (\Exception $e) {
             $db->transRollback();
@@ -342,7 +381,7 @@ class PosController extends BaseController
     /**
      * Send receipt SMS
      */
-    private function sendReceiptSms($transactionId)
+    private function sendReceiptSms($transactionId, $userCredentials = null)
     {
         $transaction = $this->transactionModel->getTransactionWithItems($transactionId);
         
@@ -352,7 +391,8 @@ class PosController extends BaseController
         
         $smsResult = $this->smsService->sendReceiptSms(
             $transaction['customer_phone'],
-            $transaction
+            $transaction,
+            $userCredentials
         );
         
         if ($smsResult['success']) {
@@ -437,5 +477,138 @@ class PosController extends BaseController
         } else {
             return $this->response->setJSON(['success' => false, 'message' => 'Failed to add product to cart']);
         }
+    }
+    
+    /**
+     * Create user account automatically based on phone number
+     */
+    private function createUserAccount($customerPhone)
+    {
+        try {
+            // Generate username from phone number
+            $username = $this->generateUsername($customerPhone);
+            
+            // Check if username already exists, if so, make it unique
+            $originalUsername = $username;
+            $counter = 1;
+            while ($this->userModel->usernameExists($username)) {
+                $username = $originalUsername . $counter;
+                $counter++;
+            }
+            
+            // Generate a secure random password
+            $password = $this->generateSecurePassword();
+            
+            // Create user data
+            $userData = [
+                'username' => $username,
+                'password' => $password
+            ];
+            
+            // Create the user account
+            $userId = $this->userModel->createUser($userData);
+            
+            if ($userId) {
+                log_message('info', 'Auto-created user account: ' . $username . ' for phone: ' . $customerPhone);
+                return [
+                    'user_id' => $userId,
+                    'username' => $username,
+                    'password' => $password
+                ];
+            } else {
+                log_message('error', 'Failed to create user account for phone: ' . $customerPhone);
+                return false;
+            }
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Error creating user account: ' . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Generate username from phone number
+     */
+    private function generateUsername($phoneNumber)
+    {
+        // Clean phone number (remove non-digits)
+        $cleanPhone = preg_replace('/[^0-9]/', '', $phoneNumber);
+        
+        // If phone starts with 63, remove country code
+        if (substr($cleanPhone, 0, 2) === '63') {
+            $cleanPhone = '0' . substr($cleanPhone, 2);
+        }
+        
+        // Simple username: just the phone number
+        return $cleanPhone;
+    }
+    
+    /**
+     * Generate a simple random password
+     */
+    private function generateSecurePassword($length = 6)
+    {
+        // Simple password: just numbers (6 digits)
+        $password = '';
+        for ($i = 0; $i < $length; $i++) {
+            $password .= random_int(0, 9);
+        }
+        return $password;
+    }
+    
+    /**
+     * Check if customer exists by phone number (AJAX endpoint)
+     */
+    public function checkCustomer()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Invalid request']);
+        }
+
+        $phone = $this->request->getPost('phone');
+        
+        if (!$phone) {
+            return $this->response->setJSON(['success' => false, 'message' => 'Phone number required']);
+        }
+
+        // Clean phone number
+        $cleanPhone = preg_replace('/[^0-9]/', '', $phone);
+        
+        // Check for existing transactions with this phone number
+        $transactions = $this->transactionModel
+            ->select('id, transaction_number, created_at, total_amount')
+            ->where('customer_phone', $phone)
+            ->orderBy('created_at', 'DESC')
+            ->limit(5)
+            ->findAll();
+
+        if (empty($transactions)) {
+            return $this->response->setJSON([
+                'success' => true,
+                'isReturning' => false,
+                'message' => 'New customer - account will be created'
+            ]);
+        }
+
+        // Customer exists, get transaction summary
+        $totalTransactions = $this->transactionModel->where('customer_phone', $phone)->countAllResults();
+        $totalSpent = $this->transactionModel
+            ->selectSum('total_amount')
+            ->where('customer_phone', $phone)
+            ->get()
+            ->getRow()
+            ->total_amount ?? 0;
+
+        return $this->response->setJSON([
+            'success' => true,
+            'isReturning' => true,
+            'customerInfo' => [
+                'phone' => $phone,
+                'totalTransactions' => $totalTransactions,
+                'totalSpent' => $totalSpent,
+                'lastTransaction' => $transactions[0]['created_at'] ?? null,
+                'recentTransactions' => $transactions
+            ]
+        ]);
     }
 }

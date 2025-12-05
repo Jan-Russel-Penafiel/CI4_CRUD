@@ -8,7 +8,7 @@ class ProductModel extends Model
 {
     protected $table = 'products';
     protected $primaryKey = 'id';
-    protected $allowedFields = ['product_name', 'description', 'price', 'qr_code', 'stock_quantity', 'status'];
+    protected $allowedFields = ['product_name', 'description', 'price', 'qr_code', 'stock_quantity', 'status', 'product_image'];
     protected $useTimestamps = true;
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
@@ -41,7 +41,8 @@ class ProductModel extends Model
         'price'        => 'required|decimal|greater_than[0]',
         'stock_quantity' => 'permit_empty|integer|greater_than_equal_to[0]',
         'qr_code'      => 'permit_empty',
-        'status'       => 'permit_empty|in_list[active,deleted]'
+        'status'       => 'permit_empty|in_list[active,deleted]',
+        'product_image' => 'permit_empty|max_length[255]'
     ];
     
     protected $validationMessages = [

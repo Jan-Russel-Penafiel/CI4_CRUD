@@ -149,7 +149,7 @@
                             </div>
                         <?php endif; ?>
 
-                        <form action="<?= base_url('products/create') ?>" method="POST" id="createProductForm">
+                        <form action="<?= base_url('products/create') ?>" method="POST" enctype="multipart/form-data" id="createProductForm">
                             <div class="row">
                                 <div class="col-md-12">
                                     <div class="mb-3">
@@ -230,6 +230,32 @@
                                 </div>
                             </div>
 
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="mb-3">
+                                        <label for="product_image" class="form-label">
+                                            <i class="fas fa-image me-2"></i>Product Image
+                                        </label>
+                                        <input type="file" 
+                                               class="form-control <?= isset($validation) && $validation->hasError('product_image') ? 'is-invalid' : '' ?>" 
+                                               id="product_image" 
+                                               name="product_image"
+                                               accept="image/jpeg,image/jpg,image/png,image/gif">
+                                        <?php if (isset($validation) && $validation->hasError('product_image')): ?>
+                                            <div class="invalid-feedback">
+                                                <?= $validation->getError('product_image') ?>
+                                            </div>
+                                        <?php endif; ?>
+                                        <div class="form-text">
+                                            Accepted formats: JPG, JPEG, PNG, GIF. Max size: 2MB
+                                        </div>
+                                        <div id="imagePreview" class="mt-2" style="display: none;">
+                                            <img id="previewImg" src="" alt="Preview" style="max-width: 200px; max-height: 200px; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <hr>
 
                             <div class="row">
@@ -256,6 +282,24 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Image preview
+        document.getElementById('product_image').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('imagePreview');
+            const previewImg = document.getElementById('previewImg');
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                preview.style.display = 'none';
+            }
+        });
+        
         // Character counter for description
         document.getElementById('description').addEventListener('input', function() {
             const charCount = this.value.length;

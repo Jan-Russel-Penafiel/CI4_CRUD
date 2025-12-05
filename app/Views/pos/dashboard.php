@@ -84,14 +84,27 @@
         }
 
         .cart-counter {
-            background: var(--primary-black);
-            color: var(--primary-white);
+            background: var(--primary-white);
+            color: var(--primary-black);
+            border: 2px solid var(--primary-white);
             border-radius: 50%;
-            padding: 0.25rem 0.5rem;
-            font-size: 0.75rem;
+            padding: 0.2rem 0.4rem;
+            font-size: 0.7rem;
+            font-weight: 700;
             position: absolute;
-            top: -8px;
-            right: -8px;
+            top: -10px;
+            right: -12px;
+            min-width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .cart-counter:empty {
+            display: none;
         }
 
         .card-hover {
@@ -196,7 +209,17 @@
         .modal-header {
             background-color: var(--primary-black);
             color: var(--primary-white);
-            border-bottom: none
+            border-bottom: none;
+            padding: 1rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-header .modal-title {
+            margin-bottom: 0;
+            font-weight: 600;
+            font-size: 1.1rem;
         }
 
         .toast {
@@ -250,6 +273,31 @@
             filter: invert(1)
         }
 
+        .modal .btn-close {
+            background-color: var(--primary-white);
+            border: 2px solid var(--primary-black);
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            font-size: 1rem;
+            font-weight: 700;
+            opacity: 1;
+            filter: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal .btn-close:hover {
+            background-color: var(--primary-black);
+            color: var(--primary-white);
+            filter: invert(1);
+        }
+
+        .modal .btn-close:focus {
+            box-shadow: 0 0 0 .25rem rgba(0, 0, 0, .25);
+        }
+
         .toast .toast-header i {
             font-size: .6rem
         }
@@ -278,6 +326,22 @@
 
         .toast.hiding {
             animation: slideOutBottom .3s ease-in
+        }
+
+        /* Quantity input styling in search results */
+        .quantity-input {
+            border-color: var(--border-color);
+            text-align: center;
+            font-size: 0.75rem;
+        }
+
+        .quantity-input:focus {
+            border-color: var(--primary-black);
+            box-shadow: 0 0 0 .2rem rgba(0, 0, 0, .25);
+        }
+
+        .list-group-item .input-group {
+            min-width: 120px;
         }
 
         @keyframes slideInBottom {
@@ -515,7 +579,7 @@
                                 <tbody>
                                     <?php $total = 0; ?>
                                     <?php foreach ($cart as $productId => $item): ?>
-                                    <tr>
+                                    <tr data-product-id="<?= $productId ?>">
                                         <td><?= esc($item['product_name']) ?></td>
                                         <td>₱<?= number_format($item['price'], 2) ?></td>
                                         <td>
@@ -940,6 +1004,8 @@
         });
 
         function updateCart(productId, quantity, action) {
+            const loadingToast = NotificationService.showLoading('Updating cart...');
+            
             fetch('<?= base_url('pos/update-cart') ?>', {
                 method: 'POST',
                 headers: {
@@ -954,28 +1020,98 @@
             })
             .then(response => response.json())
             .then(data => {
+                NotificationService.hideLoading();
+                
                 if (data.success) {
                     NotificationService.showSuccess('Cart updated successfully');
-                    location.reload();
+                    updateCartCounter();
+                    updateCartDisplay(productId, quantity, action);
                 } else {
                     NotificationService.showError(data.message || 'Error updating cart');
                 }
             })
             .catch(error => {
+                NotificationService.hideLoading();
                 console.error('Error:', error);
                 NotificationService.showError('Error updating cart');
             });
+        }
+        
+        function updateCartDisplay(productId, quantity, action) {
+            const cartRow = document.querySelector(`tr[data-product-id="${productId}"]`);
+            
+            if (action === 'remove' || quantity == 0) {
+                // Remove the row and check if cart is empty
+                if (cartRow) {
+                    cartRow.remove();
+                }
+                
+                // Check if cart is now empty
+                const cartTableBody = document.querySelector('.table tbody');
+                if (cartTableBody && cartTableBody.children.length === 0) {
+                    // Hide the entire cart section if empty
+                    const cartSection = cartTableBody.closest('.row.mb-4');
+                    if (cartSection) {
+                        cartSection.style.display = 'none';
+                    }
+                }
+            } else if (action === 'update' && cartRow) {
+                // Update the quantity and subtotal in the existing row
+                const quantityInput = cartRow.querySelector('.quantity-input');
+                const subtotalCell = cartRow.querySelector('td:nth-child(4)');
+                const priceCell = cartRow.querySelector('td:nth-child(2)');
+                
+                if (quantityInput && subtotalCell && priceCell) {
+                    const price = parseFloat(priceCell.textContent.replace('₱', '').replace(',', ''));
+                    const newSubtotal = price * quantity;
+                    
+                    quantityInput.value = quantity;
+                    subtotalCell.textContent = '₱' + newSubtotal.toLocaleString('en-US', {minimumFractionDigits: 2});
+                }
+            }
+            
+            // Recalculate and update the total
+            updateCartTotal();
+        }
+        
+        function updateCartTotal() {
+            const subtotalCells = document.querySelectorAll('.table tbody td:nth-child(4)');
+            let total = 0;
+            
+            subtotalCells.forEach(cell => {
+                const subtotal = parseFloat(cell.textContent.replace('₱', '').replace(',', ''));
+                if (!isNaN(subtotal)) {
+                    total += subtotal;
+                }
+            });
+            
+            const totalCell = document.querySelector('.table tfoot th:nth-child(4)');
+            if (totalCell) {
+                totalCell.textContent = '₱' + total.toLocaleString('en-US', {minimumFractionDigits: 2});
+            }
         }
 
         // Product search
         const searchInput = document.getElementById('productSearch');
         const searchResults = document.getElementById('searchResults');
+        
+        // Initialize search results
+        searchResults.innerHTML = '<p class="text-muted text-center">Search for products to add to cart</p>';
+        
+        // Reset search when modal is opened
+        const searchModal = document.getElementById('searchModal');
+        if (searchModal) {
+            searchModal.addEventListener('shown.bs.modal', function () {
+                searchInput.focus();
+                searchResults.innerHTML = '<p class="text-muted text-center">Search for products to add to cart</p>';
+            });
+        }
 
         searchInput.addEventListener('input', function() {
             const search = this.value.trim();
             
             if (search.length < 2) {
-                searchResults.innerHTML = '';
+                searchResults.innerHTML = '<p class="text-muted text-center">Type at least 2 characters to search</p>';
                 return;
             }
             
@@ -1009,15 +1145,26 @@
             let html = '<div class="list-group">';
             products.forEach(product => {
                 html += `
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-1">${escapeHtml(product.product_name)}</h6>
-                            <p class="mb-1 text-muted">₱${parseFloat(product.price).toFixed(2)}</p>
-                            <small>Stock: ${product.stock_quantity}</small>
+                    <div class="list-group-item">
+                        <div class="row align-items-center">
+                            <div class="col-md-7">
+                                <h6 class="mb-1">${escapeHtml(product.product_name)}</h6>
+                                <p class="mb-1 text-muted">₱${parseFloat(product.price).toFixed(2)}</p>
+                                <small class="text-muted">Stock: ${product.stock_quantity}</small>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="input-group input-group-sm">
+                                    <input type="number" class="form-control quantity-input" 
+                                           value="1" min="1" max="${product.stock_quantity}" 
+                                           data-product-id="${product.id}" 
+                                           placeholder="Qty" style="max-width: 70px;">
+                                    <button class="btn btn-black add-product" 
+                                            data-product-id="${product.id}" type="button">
+                                        <i class="fas fa-plus"></i> Add
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <button class="btn btn-sm btn-black add-product" data-product-id="${product.id}">
-                            <i class="fas fa-plus"></i> Add
-                        </button>
                     </div>
                 `;
             });
@@ -1025,16 +1172,62 @@
             
             searchResults.innerHTML = html;
 
+            // Add event listeners for quantity inputs (Enter key support)
+            document.querySelectorAll('.quantity-input').forEach(input => {
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        const productId = this.dataset.productId;
+                        const addButton = document.querySelector(`button.add-product[data-product-id="${productId}"]`);
+                        if (addButton) {
+                            addButton.click();
+                        }
+                    }
+                });
+            });
+
             // Add event listeners for add buttons
             document.querySelectorAll('.add-product').forEach(button => {
                 button.addEventListener('click', function() {
                     const productId = this.dataset.productId;
-                    addProductToCart(productId);
+                    const quantityInput = document.querySelector(`input.quantity-input[data-product-id="${productId}"]`);
+                    const quantity = quantityInput ? parseInt(quantityInput.value) || 1 : 1;
+                    const originalText = this.innerHTML;
+                    
+                    // Validate quantity
+                    if (quantity < 1) {
+                        NotificationService.showError('Quantity must be at least 1');
+                        return;
+                    }
+                    
+                    const maxQuantity = parseInt(quantityInput.max);
+                    if (quantity > maxQuantity) {
+                        NotificationService.showError(`Only ${maxQuantity} items available in stock`);
+                        return;
+                    }
+                    
+                    // Disable button and show loading state
+                    this.disabled = true;
+                    this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+                    
+                    // Add product to cart with specified quantity
+                    addProductToCart(productId, quantity);
+                    
+                    // Reset button after a short delay
+                    setTimeout(() => {
+                        this.disabled = false;
+                        this.innerHTML = originalText;
+                        // Reset quantity to 1
+                        if (quantityInput) {
+                            quantityInput.value = 1;
+                        }
+                    }, 1500);
                 });
             });
         }
 
-        function addProductToCart(productId) {
+        function addProductToCart(productId, quantity = 1) {
+            const loadingToast = NotificationService.showLoading('Adding product to cart...');
+            
             fetch('<?= base_url('pos/add-product') ?>', {
                 method: 'POST',
                 headers: {
@@ -1043,21 +1236,60 @@
                 },
                 body: new URLSearchParams({
                     product_id: productId,
-                    quantity: 1
+                    quantity: quantity
                 })
             })
             .then(response => response.json())
             .then(data => {
+                NotificationService.hideLoading();
+                
                 if (data.success) {
                     NotificationService.showSuccess('Product added to cart successfully');
-                    location.reload();
+                    updateCartCounter();
+                    
+                    // Clear the search input but keep modal open
+                    const searchInput = document.getElementById('productSearch');
+                    if (searchInput) {
+                        searchInput.value = '';
+                        searchResults.innerHTML = '<p class="text-muted text-center">Search for products to add to cart</p>';
+                    }
                 } else {
                     NotificationService.showError(data.message || 'Error adding product');
                 }
             })
             .catch(error => {
+                NotificationService.hideLoading();
                 console.error('Error:', error);
-                NotificationService.showError('Error adding product');
+                NotificationService.showError('Error adding product to cart');
+            });
+        }
+
+        function updateCartCounter() {
+            fetch('<?= base_url('pos/cart-count') ?>', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const cartCounter = document.getElementById('cartCounter');
+                    if (cartCounter) {
+                        cartCounter.textContent = data.count;
+                        
+                        // Add a subtle animation to draw attention
+                        cartCounter.style.transform = 'scale(1.2)';
+                        cartCounter.style.transition = 'transform 0.2s ease';
+                        
+                        setTimeout(() => {
+                            cartCounter.style.transform = 'scale(1)';
+                        }, 200);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error updating cart counter:', error);
             });
         }
 

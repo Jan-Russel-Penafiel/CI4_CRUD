@@ -53,6 +53,23 @@ class UserModel extends Model
     }
 
     /**
+     * Create a new user automatically (for system-generated accounts)
+     * Bypasses password validation since system generates secure passwords
+     *
+     * @param array $data
+     * @return bool|int
+     */
+    public function createUserAutomatic(array $data)
+    {
+        // Hash the password using bcrypt with cost factor 12 for enhanced security
+        if (isset($data['password'])) {
+            $data['password'] = password_hash($data['password'], PASSWORD_BCRYPT, ['cost' => 12]);
+        }
+
+        return $this->insert($data);
+    }
+
+    /**
      * Authenticate user credentials with enhanced security
      *
      * @param string $username

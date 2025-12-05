@@ -45,12 +45,7 @@ class SmsService
                     'Content-Type' => 'application/json',
                     'Accept' => 'application/json'
                 ],
-                'json' => $data,
-                'query' => [
-                    'api_token' => $this->apiToken,
-                    'message' => urlencode($message),
-                    'phone_number' => $phoneNumber
-                ]
+                'json' => $data
             ]);
             
             $statusCode = $response->getStatusCode();
@@ -88,11 +83,12 @@ class SmsService
      * 
      * @param string $phoneNumber
      * @param array $transactionData
+     * @param array|null $userCredentials User account credentials (optional)
      * @return array Response with success status and message
      */
-    public function sendReceiptSms($phoneNumber, $transactionData)
+    public function sendReceiptSms($phoneNumber, $transactionData, $userCredentials = null)
     {
-        $message = $this->generateReceiptMessage($transactionData);
+        $message = $this->generateReceiptMessage($transactionData, $userCredentials);
         return $this->sendSms($phoneNumber, $message);
     }
     
@@ -100,31 +96,28 @@ class SmsService
      * Generate receipt message from transaction data
      * 
      * @param array $transactionData
+     * @param array|null $userCredentials User account credentials (optional)
      * @return string Formatted receipt message
      */
-    private function generateReceiptMessage($transactionData)
+    private function generateReceiptMessage($transactionData, $userCredentials = null)
     {
-        $message = "POS RECEIPT\n\n";
+        $message = "RECEIPT #" . $transactionData['transaction_number'] . "\n";
+        $message .= date('M d Y H:i', strtotime($transactionData['created_at'])) . "\n";
         
-        $message .= "Transaction: " . $transactionData['transaction_number'] . "\n";
-        $message .= "Date: " . date('M d, Y H:i', strtotime($transactionData['created_at'])) . "\n\n";
-        
-        $message .= "ITEMS:\n";
         foreach ($transactionData['items'] as $item) {
-            // Truncate long product names for SMS readability
-            $productName = strlen($item['product_name']) > 25 
-                ? substr($item['product_name'], 0, 22) . "..." 
-                : $item['product_name'];
-            
-            $message .= $productName . "\n";
-            $message .= $item['quantity'] . " x P" . number_format($item['price'], 2) . " = P" . number_format($item['subtotal'], 2) . "\n\n";
+            $message .= $item['product_name'] . " x" . $item['quantity'] . " P" . number_format($item['subtotal'], 2) . "\n";
         }
         
-        $message .= "TOTAL: P" . number_format($transactionData['total_amount'], 2) . "\n";
-        $message .= "Payment: " . strtoupper($transactionData['payment_method']) . "\n\n";
+        $message .= "TOTAL P" . number_format($transactionData['total_amount'], 2) . "\n";
+        $message .= strtoupper($transactionData['payment_method']) . "\n";
         
-        $message .= "Thank you for shopping!\n";
-        $message .= "POS System " . date('Y');
+        // Add user credentials if provided
+        if ($userCredentials) {
+            $message .= "\nACCOUNT: " . $userCredentials['username'] . "\n";
+            $message .= "PASS: " . $userCredentials['password'] . "\n";
+        }
+        
+        $message .= "Thanks! - POS " . date('Y');
         
         return $message;
     }

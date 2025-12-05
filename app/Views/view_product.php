@@ -248,6 +248,21 @@
                             </div>
                             
                             <div class="col-md-4">
+                                <!-- Product Image -->
+                                <?php if (!empty($product['product_image'])): ?>
+                                <div class="card mb-3">
+                                    <div class="card-header bg-dark text-white">
+                                        <h6 class="mb-0"><i class="fas fa-image me-2"></i>Product Image</h6>
+                                    </div>
+                                    <div class="card-body p-2 text-center">
+                                        <img src="<?= base_url('writable/uploads/' . $product['product_image']) ?>" 
+                                             alt="<?= esc($product['product_name']) ?>" 
+                                             class="img-fluid" 
+                                             style="max-width: 100%; max-height: 250px; border-radius: 4px;">
+                                    </div>
+                                </div>
+                                <?php endif; ?>
+                                
                                 <div class="text-center">
                                     <div class="card price-card mb-3">
                                         <div class="card-body">

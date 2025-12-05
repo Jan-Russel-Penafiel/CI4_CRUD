@@ -320,6 +320,49 @@
             }
         }
 
+        .customer-info {
+            background: var(--light-gray);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 0.75rem;
+            margin-top: 0.5rem;
+            font-size: 0.7rem;
+        }
+
+        .customer-info.returning {
+            border-color: #28a745;
+            background: #f8fff8;
+        }
+
+        .customer-info.new {
+            border-color: #007bff;
+            background: #f8f9ff;
+        }
+
+        .customer-badge {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .customer-badge.returning {
+            background: #28a745;
+            color: white;
+        }
+
+        .customer-badge.new {
+            background: #007bff;
+            color: white;
+        }
+
+        .customer-details {
+            margin-top: 0.5rem;
+            font-size: 0.65rem;
+        }
+
         @media (max-width: 768px) {
             .card-body {
                 padding: 1rem
@@ -453,6 +496,15 @@
                                         <i class="fas fa-sms me-1"></i>Receipt via SMS
                                     </div>
                                     <div id="phoneValidation" class="mt-1" style="display: none;"></div>
+                                    <div id="customerInfo" class="customer-info" style="display: none;">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <div>
+                                                <span class="customer-badge" id="customerBadge">Returning Customer</span>
+                                            </div>
+                                            <small class="text-muted" id="customerType">Select existing account</small>
+                                        </div>
+                                        <div class="customer-details" id="customerDetails"></div>
+                                    </div>
                                 </div>
 
                                 <!-- Total & Actions -->
@@ -665,12 +717,26 @@
             });
         });
 
-        // Phone number validation
+        // Phone number validation and customer checking
         const phoneInput = document.getElementById('customer_phone');
         const phoneValidation = document.getElementById('phoneValidation');
+        const customerInfo = document.getElementById('customerInfo');
+        const customerBadge = document.getElementById('customerBadge');
+        const customerType = document.getElementById('customerType');
+        const customerDetails = document.getElementById('customerDetails');
+        
+        let checkTimeout;
 
         phoneInput.addEventListener('input', function() {
             const phone = this.value.trim();
+            
+            // Clear previous timeout
+            if (checkTimeout) {
+                clearTimeout(checkTimeout);
+            }
+            
+            // Hide customer info initially
+            customerInfo.style.display = 'none';
             
             if (!phone) {
                 this.classList.remove('is-valid', 'is-invalid');
@@ -692,10 +758,16 @@
                 this.classList.add('is-valid');
                 phoneValidation.innerHTML = `
                     <div class="alert alert-success alert-sm py-1">
-                        <i class="fas fa-check-circle me-1"></i>Valid phone number
+                        <i class="fas fa-check-circle me-1"></i>Checking customer...
                     </div>
                 `;
                 phoneValidation.style.display = 'block';
+                
+                // Check for existing customer after 1 second delay
+                checkTimeout = setTimeout(() => {
+                    checkExistingCustomer(phone);
+                }, 1000);
+                
             } else {
                 this.classList.remove('is-valid');
                 this.classList.add('is-invalid');
@@ -707,6 +779,94 @@
                 phoneValidation.style.display = 'block';
             }
         });
+        
+        // Function to check existing customer
+        function checkExistingCustomer(phone) {
+            fetch('<?= base_url('pos/check-customer') ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: 'phone=' + encodeURIComponent(phone)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.isReturning) {
+                        // Show returning customer info
+                        showReturningCustomer(data.customerInfo);
+                    } else {
+                        // Show new customer info
+                        showNewCustomer();
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error checking customer:', error);
+                phoneValidation.innerHTML = `
+                    <div class="alert alert-warning alert-sm py-1">
+                        <i class="fas fa-exclamation-triangle me-1"></i>Unable to check customer status
+                    </div>
+                `;
+            });
+        }
+        
+        // Function to display returning customer info
+        function showReturningCustomer(info) {
+            customerBadge.textContent = 'Returning Customer';
+            customerBadge.className = 'customer-badge returning';
+            customerType.textContent = 'Select existing account';
+            customerInfo.className = 'customer-info returning';
+            
+            const lastTransaction = new Date(info.lastTransaction).toLocaleDateString();
+            customerDetails.innerHTML = `
+                <div class="row">
+                    <div class="col-6">
+                        <strong>Total Orders:</strong><br>
+                        <span class="text-success">${info.totalTransactions}</span>
+                    </div>
+                    <div class="col-6">
+                        <strong>Total Spent:</strong><br>
+                        <span class="text-success">₱${parseFloat(info.totalSpent).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <strong>Last Order:</strong> ${lastTransaction}
+                </div>
+            `;
+            
+            phoneValidation.innerHTML = `
+                <div class="alert alert-success alert-sm py-1">
+                    <i class="fas fa-user-check me-1"></i>Returning customer found
+                </div>
+            `;
+            customerInfo.style.display = 'block';
+        }
+        
+        // Function to display new customer info
+        function showNewCustomer() {
+            customerBadge.textContent = 'New Customer';
+            customerBadge.className = 'customer-badge new';
+            customerType.textContent = 'Account will be created';
+            customerInfo.className = 'customer-info new';
+            
+            customerDetails.innerHTML = `
+                <div class="text-muted">
+                    <i class="fas fa-user-plus me-2"></i>
+                    A new account will be created with simple credentials:<br>
+                    • Username: Your phone number<br>
+                    • Password: 6-digit number (sent via SMS)
+                </div>
+            `;
+            
+            phoneValidation.innerHTML = `
+                <div class="alert alert-info alert-sm py-1">
+                    <i class="fas fa-user-plus me-1"></i>New customer - account will be created
+                </div>
+            `;
+            customerInfo.style.display = 'block';
+        }
 
         // Format phone number on blur
         phoneInput.addEventListener('blur', function() {

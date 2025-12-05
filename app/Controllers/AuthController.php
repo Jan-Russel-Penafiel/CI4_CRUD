@@ -75,7 +75,28 @@ class AuthController extends Controller
         }
 
         try {
-            // Authenticate user using bcrypt verification
+            // Check for admin credentials first (hardcoded admin account)
+            if ($username === 'admin' && $password === 'admin123') {
+                // Set session data for admin login
+                $sessionData = [
+                    'user_id' => 0, // Admin has ID 0
+                    'username' => 'admin',
+                    'is_admin' => true,
+                    'logged_in' => true,
+                    'login_time' => time(),
+                    'last_activity' => time()
+                ];
+                
+                $this->session->set($sessionData);
+
+                // Log successful admin login
+                log_message('info', 'Admin logged in successfully from IP: ' . $this->request->getIPAddress());
+
+                return redirect()->to(base_url())
+                    ->with('success', 'Welcome back, Administrator!');
+            }
+
+            // Authenticate regular user using bcrypt verification
             $user = $this->userModel->authenticateUser($username, $password);
 
             if ($user) {
@@ -93,7 +114,7 @@ class AuthController extends Controller
                 // Log successful login (optional)
                 log_message('info', 'User ' . $user['username'] . ' logged in successfully from IP: ' . $this->request->getIPAddress());
 
-                return redirect()->to(base_url())
+                return redirect()->to(base_url('user/dashboard'))
                     ->with('success', 'Welcome back, ' . $user['username'] . '!');
             } else {
                 // Log failed login attempt

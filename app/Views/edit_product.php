@@ -192,7 +192,7 @@
                             </div>
                         <?php endif; ?>
 
-                        <form action="<?= base_url('products/update/' . $product['id']) ?>" method="POST" id="editProductForm">
+                        <form action="<?= base_url('products/update/' . $product['id']) ?>" method="POST" enctype="multipart/form-data" id="editProductForm">
                             <div class="row">
                                 <div class="col-md-8">
                                     <div class="mb-3">
@@ -291,6 +291,46 @@
                                 </div>
                             </div>
 
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="mb-3">
+                                        <label for="product_image" class="form-label">
+                                            <i class="fas fa-image me-2"></i>Product Image
+                                        </label>
+                                        <?php if (!empty($product['product_image'])): ?>
+                                            <div class="mb-2">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <img src="<?= base_url('writable/uploads/' . $product['product_image']) ?>" 
+                                                         alt="Current product image" 
+                                                         style="max-width: 150px; max-height: 150px; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
+                                                    <div>
+                                                        <small class="text-muted d-block">Current Image</small>
+                                                        <small class="text-muted"><?= $product['product_image'] ?></small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <?php endif; ?>
+                                        <input type="file" 
+                                               class="form-control <?= isset($validation) && $validation->hasError('product_image') ? 'is-invalid' : '' ?>" 
+                                               id="product_image" 
+                                               name="product_image"
+                                               accept="image/jpeg,image/jpg,image/png,image/gif">
+                                        <?php if (isset($validation) && $validation->hasError('product_image')): ?>
+                                            <div class="invalid-feedback">
+                                                <?= $validation->getError('product_image') ?>
+                                            </div>
+                                        <?php endif; ?>
+                                        <div class="form-text">
+                                            Accepted formats: JPG, JPEG, PNG, GIF. Max size: 2MB. Leave empty to keep current image.
+                                        </div>
+                                        <div id="imagePreview" class="mt-2" style="display: none;">
+                                            <small class="text-muted d-block mb-1">New Image Preview:</small>
+                                            <img id="previewImg" src="" alt="Preview" style="max-width: 200px; max-height: 200px; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <hr class="my-2">
 
                             <div class="row">
@@ -324,6 +364,24 @@
     <script>
         const originalPrice = <?= $product['price'] ?>;
         const originalStock = <?= $product['stock_quantity'] ?? 0 ?>;
+        
+        // Image preview
+        document.getElementById('product_image').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const preview = document.getElementById('imagePreview');
+            const previewImg = document.getElementById('previewImg');
+            
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                preview.style.display = 'none';
+            }
+        });
         
         // Character counter for description
         document.getElementById('description').addEventListener('input', function() {
