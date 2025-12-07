@@ -1205,14 +1205,6 @@
                                         <i class="fas fa-sign-in-alt me-2"></i>Access System
                                     </button>
                                 </div>
-                                <div class="text-center">
-                                    <small class="text-muted">
-                                        Don't have an account? 
-                                        <a href="<?= base_url('auth/register') ?>" class="text-decoration-none">
-                                            <strong>Register here</strong>
-                                        </a>
-                                    </small>
-                                </div>
                             </form>
                         </div>
                     </div>
