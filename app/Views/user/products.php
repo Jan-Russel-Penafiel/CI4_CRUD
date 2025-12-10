@@ -146,6 +146,59 @@
             transition: all 0.2s ease-in-out
         }
 
+        .card {
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, .1);
+            transition: transform .2s ease;
+            font-size: .75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-header {
+            background-color: var(--primary-black);
+            color: var(--primary-white);
+            border-radius: 8px 8px 0 0 !important;
+            padding: 1rem 1.25rem;
+            font-weight: 600;
+            font-size: .9rem;
+        }
+
+        .card-header h5,
+        .card-header h6 {
+            font-size: .9rem
+        }
+
+        .table {
+            font-size: .7rem;
+            margin-bottom: 0;
+        }
+
+        .table th {
+            font-size: .65rem;
+            padding: .5rem;
+            background-color: var(--primary-black);
+            color: var(--primary-white);
+            border-color: var(--dark-gray);
+        }
+
+        .table td {
+            padding: .5rem;
+            vertical-align: middle;
+        }
+
+        .table-striped>tbody>tr:nth-of-type(odd)>td {
+            background-color: var(--primary-white)
+        }
+
+        .table-striped>tbody>tr:nth-of-type(even)>td {
+            background-color: var(--light-gray)
+        }
+
+        .table tbody tr:hover {
+            background-color: rgba(0, 0, 0, .05)
+        }
+
         .btn {
             font-size: .7rem;
             padding: .25rem .5rem
@@ -561,7 +614,7 @@
         <div class="card">
             <div class="card-header bg-black text-white d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center gap-3">
-                    <h5 class="mb-0"><i class="fas fa-box-open me-2"></i>Products Catalog</h5>
+                    <h5 class="mb-0"><i class="fas fa-table me-2"></i>Products Catalog</h5>
                 </div>
                 <div class="d-flex align-items-center">
                     <small class="me-3" id="productCount">
@@ -582,7 +635,7 @@
             <div class="card-body p-0">
                 <?php if (empty($products)): ?>
                     <div class="text-center py-5">
-                        <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                         <h4>No Products Found</h4>
                         <?php if (!empty($search)): ?>
                             <p class="text-muted">No products match your search criteria "<?= esc($search) ?>".</p>
@@ -618,7 +671,11 @@
                                             <?php if (!empty($product['product_image'])): ?>
                                                 <img src="<?= base_url('writable/uploads/' . $product['product_image']) ?>" 
                                                      alt="<?= esc($product['product_name']) ?>" 
-                                                     style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;">
+                                                     style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;"
+                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                <div style="width: 50px; height: 50px; background: #f0f0f0; border-radius: 4px; display: none; align-items: center; justify-content: center; border: 1px solid #ddd;">
+                                                    <i class="fas fa-image text-muted"></i>
+                                                </div>
                                             <?php else: ?>
                                                 <div style="width: 50px; height: 50px; background: #f0f0f0; border-radius: 4px; display: flex; align-items: center; justify-content: center; border: 1px solid #ddd;">
                                                     <i class="fas fa-image text-muted"></i>
@@ -674,7 +731,13 @@
                                                      class="mobile-product-image-large"
                                                      style="transition: transform 0.2s ease; cursor: pointer;"
                                                      onmouseover="this.style.transform='scale(1.05)'"
+                                                     onmouseout="this.style.transform='scale(1)'"
+                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                <div class="mobile-product-placeholder-large" style="display: none; transition: transform 0.2s ease; cursor: pointer;"
+                                                     onmouseover="this.style.transform='scale(1.05)'"
                                                      onmouseout="this.style.transform='scale(1)'">
+                                                    <i class="fas fa-image"></i>
+                                                </div>
                                             <?php else: ?>
                                                 <div class="mobile-product-placeholder-large" style="transition: transform 0.2s ease; cursor: pointer;"
                                                      onmouseover="this.style.transform='scale(1.05)'"

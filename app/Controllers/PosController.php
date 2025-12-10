@@ -505,8 +505,8 @@ class PosController extends BaseController
                 'password' => $password
             ];
             
-            // Create the user account
-            $userId = $this->userModel->createUser($userData);
+            // Create the user account using automatic method (bypasses password strength validation)
+            $userId = $this->userModel->createUserAutomatic($userData);
             
             if ($userId) {
                 log_message('info', 'Auto-created user account: ' . $username . ' for phone: ' . $customerPhone);

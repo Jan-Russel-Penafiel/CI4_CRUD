@@ -1270,7 +1270,6 @@
                                     <tr>
                                         <th scope="col" style="width:40px"><input type="checkbox" class="form-check-input select-checkbox" id="selectAllMain" onchange="toggleSelectAll('main')"></th>
                                         <th scope="col"><i class="fas fa-hashtag me-1"></i>ID</th>
-                                        <th scope="col"><i class="fas fa-image me-1"></i>Image</th>
                                         <th scope="col"><i class="fas fa-tag me-1"></i>Product Name</th>
                                         <th scope="col"><i class="fas fa-align-left me-1"></i>Description</th>
                                         <th scope="col"><i class="fas fa-peso-sign me-1"></i>Price</th>
@@ -1284,17 +1283,6 @@
                                         <tr id="product-row-<?= $product['id'] ?>" class="product-row">
                                             <td><input type="checkbox" class="form-check-input select-checkbox product-checkbox" value="<?= $product['id'] ?>" onchange="updateBulkActions()"></td>
                                             <td><strong>#<?= $start_number + $index + 1 ?></strong></td>
-                                            <td>
-                                                <?php if (!empty($product['product_image'])): ?>
-                                                    <img src="<?= base_url('writable/uploads/' . $product['product_image']) ?>" 
-                                                         alt="<?= esc($product['product_name']) ?>" 
-                                                         style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;">
-                                                <?php else: ?>
-                                                    <div style="width: 50px; height: 50px; background: #f0f0f0; border-radius: 4px; display: flex; align-items: center; justify-content: center; border: 1px solid #ddd;">
-                                                        <i class="fas fa-image text-muted"></i>
-                                                    </div>
-                                                <?php endif; ?>
-                                            </td>
                                             <td><span class="fw-semibold"><?= esc($product['product_name']) ?></span></td>
                                             <td><?php if (!empty($product['description'])): ?><span title="<?= esc($product['description']) ?>"><?= esc(substr($product['description'], 0, 50)) ?><?= strlen($product['description']) > 50 ? '...' : '' ?></span><?php else: ?><em class="text-muted">No description</em><?php endif; ?></td>
                                             <td><strong class="text-success">₱<?= number_format($product['price'], 2) ?></strong></td>

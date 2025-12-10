@@ -245,6 +245,32 @@
                                         </div>
                                     </div>
                                 </div>
+
+                                <!-- QR Code Section -->
+                                <div class="info-row">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <span class="info-label"><i class="fas fa-qrcode me-2"></i>QR Code:</span>
+                                        </div>
+                                        <div class="col-md-9">
+                                            <div class="info-value">
+                                                <?php if (isset($qrCodeDataUri) && $qrCodeDataUri): ?>
+                                                    <div class="qr-code-container">
+                                                        <img src="<?= $qrCodeDataUri ?>" 
+                                                             alt="QR Code for <?= esc($product['product_name']) ?>" 
+                                                             class="img-fluid" 
+                                                             style="max-width: 120px; max-height: 120px; border: 1px solid #dee2e6; border-radius: 4px; padding: 5px;">
+                                                    </div>
+                                                <?php else: ?>
+                                                    <div class="text-muted">
+                                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                                        QR Code generation failed
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             
                             <div class="col-md-4">
@@ -269,28 +295,6 @@
                                             <i class="fas fa-peso-sign fa-3x mb-3"></i>
                                             <div class="price-display">₱<?= number_format($product['price'], 2) ?></div>
                                             <p class="mb-0 opacity-75">Current Retail Price</p>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- QR Code Section -->
-                                    <div class="card mt-3">
-                                        <div class="card-header bg-dark text-white">
-                                            <h6 class="mb-0"><i class="fas fa-qrcode me-2"></i>QR Code</h6>
-                                        </div>
-                                        <div class="card-body p-2">
-                                            <?php if (isset($qrCodeDataUri) && $qrCodeDataUri): ?>
-                                                <div class="qr-code-container">
-                                                    <img src="<?= $qrCodeDataUri ?>" 
-                                                         alt="QR Code for <?= esc($product['product_name']) ?>" 
-                                                         class="img-fluid" 
-                                                         style="max-width: 120px; max-height: 120px;">
-                                                </div>
-                                            <?php else: ?>
-                                                <div class="text-muted">
-                                                    <i class="fas fa-exclamation-triangle me-2"></i>
-                                                    QR Code generation failed
-                                                </div>
-                                            <?php endif; ?>
                                         </div>
                                     </div>
                                 </div>

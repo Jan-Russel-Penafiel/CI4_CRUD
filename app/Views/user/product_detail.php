@@ -409,7 +409,7 @@
             <div class="col-md-6">
                 <!-- Product Image -->
                 <?php if (!empty($product['product_image'])): ?>
-                <div class="card mb-3">
+                <div class="card mb-3" id="productImageCard">
                     <div class="card-header">
                         <i class="fas fa-image me-2"></i>Product Image
                     </div>
@@ -417,14 +417,15 @@
                         <img src="<?= base_url('writable/uploads/' . $product['product_image']) ?>" 
                              alt="<?= esc($product['product_name']) ?>" 
                              class="img-fluid" 
-                             style="max-width: 100%; max-height: 300px; border-radius: 4px; border: 1px solid var(--border-color);">
+                             style="max-width: 100%; max-height: 300px; border-radius: 4px; border: 1px solid var(--border-color);"
+                             onerror="document.getElementById('productImageCard').style.display='none'; document.getElementById('fallback-image').style.display='flex';">
                     </div>
                 </div>
-                <?php else: ?>
-                <div class="product-image-large mb-3">
+                <?php endif; ?>
+                
+                <div class="product-image-large mb-3" id="fallback-image" style="<?= !empty($product['product_image']) ? 'display: none;' : 'display: flex;' ?>">
                     <i class="fas fa-box"></i>
                 </div>
-                <?php endif; ?>
                 
                 <!-- Price Card -->
                 <div class="text-center">
