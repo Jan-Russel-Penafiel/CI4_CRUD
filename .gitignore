@@ -26,6 +26,10 @@ Thumbs.db
 
 # Node modules
 node_modules/
+package-lock.json
+
+# Tailwind build (keep output.css but ignore input if needed)
+# public/css/input.css
 
 # Composer
 composer.phar

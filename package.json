@@ -1,0 +1,17 @@
+{
+  "name": "ci4-bsit3a",
+  "version": "1.0.0",
+  "description": "CodeIgniter 4 BSIT3A Project with Tailwind CSS",
+  "scripts": {
+    "build:css": "tailwindcss -i ./public/css/input.css -o ./public/css/output.css --minify",
+    "watch:css": "tailwindcss -i ./public/css/input.css -o ./public/css/output.css --watch"
+  },
+  "keywords": ["codeigniter", "tailwindcss"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "tailwindcss": "^3.4.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32"
+  }
+}

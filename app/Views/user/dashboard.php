@@ -8,6 +8,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title><?= $title ?> - POS System</title>
     <meta name="author" content="Jan Russel E. Peñafiel">
+    <link href="<?= base_url('css/output.css') ?>" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -29,28 +30,51 @@
         .navbar {
             background: linear-gradient(135deg, var(--primary-black) 0%, var(--dark-gray) 100%);
             box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            padding: 0.75rem 1rem;
         }
 
         .navbar-brand {
             color: var(--primary-white) !important;
             font-weight: 600;
-            font-size: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .navbar-toggler {
+            border-color: rgba(255,255,255,.3);
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: 0 0 0 0.2rem rgba(255,255,255,.25);
+        }
+
+        .navbar-nav {
+            align-items: center;
         }
 
         .navbar-nav .nav-link {
-            color: rgba(255,255,255,.85) !important;
-            margin: 0 0.5rem;
-            transition: color 0.3s;
-            font-size: .8rem;
+            color: rgba(255,255,255,.9) !important;
+            margin: 0 0.3rem;
+            padding: 0.5rem 0.8rem !important;
+            transition: all 0.3s;
+            font-size: .85rem;
+            border-radius: 4px;
+            display: inline-flex;
+            align-items: center;
         }
 
         .navbar-nav .nav-link:hover {
             color: var(--primary-white) !important;
+            background-color: rgba(255,255,255,.1);
         }
 
         .navbar-nav .nav-link.active {
             color: var(--primary-white) !important;
             font-weight: 500;
+            background-color: rgba(255,255,255,.15);
+        }
+
+        .navbar-nav .nav-link i {
+            margin-right: 0.4rem;
         }
 
         .card {
@@ -277,12 +301,17 @@
             }
 
             .navbar-brand {
-                font-size: .85rem
+                font-size: .95rem
+            }
+
+            .navbar-nav {
+                margin-top: 0.5rem;
             }
 
             .navbar-nav .nav-link {
-                font-size: .7rem;
-                padding: 0.5rem 0.75rem
+                font-size: .8rem;
+                padding: 0.6rem 0.8rem !important;
+                margin: 0.2rem 0;
             }
 
             .card {
@@ -346,49 +375,133 @@
                 padding: 0.75rem
             }
         }
+
+        /* Tailwind-style Navigation */
+        nav {
+            background: linear-gradient(135deg, #000 0%, #6c757d 100%);
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        nav .container {
+            max-width: 1200px;
+        }
+
+        nav a {
+            text-decoration: none;
+        }
+
+        @media (min-width: 1024px) {
+            #mobile-menu {
+                display: none !important;
+            }
+            
+            #mobile-menu-btn {
+                display: none !important;
+            }
+        }
+
+        @media (max-width: 1023px) {
+            nav .lg\\:flex {
+                display: none !important;
+            }
+        }
     </style>
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="<?= base_url('user/dashboard') ?>">
-                <i class="fas fa-user-circle me-2"></i><span class="d-none d-sm-inline">User Portal</span><span class="d-sm-none">Portal</span>
+    <nav style="background: linear-gradient(135deg, #000 0%, #6c757d 100%); box-shadow: 0 2px 4px rgba(0,0,0,.1); position: sticky; top: 0; z-index: 50; color: white; padding: 0.75rem 0;">
+        <div class="container" style="display: flex; align-items: center; justify-content: space-between; padding: 0 1rem;">
+            <a href="<?= base_url('user/dashboard') ?>" style="color: white; font-weight: 600; font-size: 1.1rem; text-decoration: none; display: flex; align-items: center;">
+                <i class="fas fa-user-circle" style="margin-right: 0.5rem;"></i>User Portal
             </a>
-            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
+            <button id="mobile-menu-btn" class="lg:hidden" style="color: white; background: none; border: none; cursor: pointer; display: none;">
+                <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path id="menu-open" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                    <path id="menu-close" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
             </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="<?= base_url('user/dashboard') ?>">
-                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= base_url('user/transactions') ?>">
-                            <i class="fas fa-receipt me-1"></i>Transactions
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= base_url('user/profile') ?>">
-                            <i class="fas fa-user me-1"></i>Profile
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= base_url('user/products') ?>">
-                            <i class="fas fa-box me-1"></i>Products
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="<?= base_url('auth/logout') ?>">
-                            <i class="fas fa-sign-out-alt me-1"></i>Logout
-                        </a>
-                    </li>
-                </ul>
+            <div id="desktop-menu" style="display: flex; align-items: center; gap: 0.25rem;">
+                <a href="<?= base_url('user/dashboard') ?>" style="color: white; padding: 0.5rem 0.75rem; border-radius: 4px; font-size: 0.875rem; font-weight: 500; background-color: rgba(255,255,255,0.15); text-decoration: none; transition: all 0.3s;">
+                    <i class="fas fa-tachometer-alt" style="margin-right: 0.25rem;"></i><span>Dashboard</span>
+                </a>
+                <a href="<?= base_url('user/transactions') ?>" style="color: rgba(255,255,255,0.9); padding: 0.5rem 0.75rem; border-radius: 4px; font-size: 0.875rem; text-decoration: none; transition: all 0.3s;">
+                    <i class="fas fa-receipt" style="margin-right: 0.25rem;"></i><span>Transactions</span>
+                </a>
+                 <a href="<?= base_url('user/profile') ?>" style="color: rgba(255,255,255,0.9); padding: 0.5rem 0.75rem; border-radius: 4px; font-size: 0.875rem; text-decoration: none; transition: all 0.3s;">
+                    <i class="fas fa-user" style="margin-right: 0.25rem;"></i><span>Profile</span>
+                </a>
+                <a href="<?= base_url('user/products') ?>" style="color: rgba(255,255,255,0.9); padding: 0.5rem 0.75rem; border-radius: 4px; font-size: 0.875rem; text-decoration: none; transition: all 0.3s;">
+                    <i class="fas fa-box" style="margin-right: 0.25rem;"></i><span>Products</span>
+                </a>
+               
+                <a href="<?= base_url('auth/logout') ?>" style="color: rgba(255,255,255,0.9); padding: 0.5rem 0.75rem; border-radius: 4px; font-size: 0.875rem; text-decoration: none; transition: all 0.3s;">
+                    <i class="fas fa-sign-out-alt" style="margin-right: 0.25rem;"></i><span>Logout</span>
+                </a>
             </div>
         </div>
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="hidden" style="padding: 0.75rem 1rem; display: none;">
+            <a href="<?= base_url('user/dashboard') ?>" style="display: block; color: white; padding: 0.5rem 0.75rem; border-radius: 4px; font-size: 0.875rem; font-weight: 500; background-color: rgba(255,255,255,0.15); margin-bottom: 0.25rem; text-decoration: none;">
+                <i class="fas fa-tachometer-alt" style="margin-right: 0.5rem;"></i>Dashboard
+            </a>
+            <a href="<?= base_url('user/transactions') ?>" style="display: block; color: rgba(255,255,255,0.9); padding: 0.5rem 0.75rem; border-radius: 4px; font-size: 0.875rem; margin-bottom: 0.25rem; text-decoration: none;">
+                <i class="fas fa-receipt" style="margin-right: 0.5rem;"></i>Transactions
+            </a>
+            <a href="<?= base_url('user/products') ?>" style="display: block; color: rgba(255,255,255,0.9); padding: 0.5rem 0.75rem; border-radius: 4px; font-size: 0.875rem; margin-bottom: 0.25rem; text-decoration: none;">
+                <i class="fas fa-box" style="margin-right: 0.5rem;"></i>Products
+            </a>
+            <a href="<?= base_url('user/profile') ?>" style="display: block; color: rgba(255,255,255,0.9); padding: 0.5rem 0.75rem; border-radius: 4px; font-size: 0.875rem; margin-bottom: 0.25rem; text-decoration: none;">
+                <i class="fas fa-user" style="margin-right: 0.5rem;"></i>Profile
+            </a>
+            <a href="<?= base_url('auth/logout') ?>" style="display: block; color: rgba(255,255,255,0.9); padding: 0.5rem 0.75rem; border-radius: 4px; font-size: 0.875rem; text-decoration: none;">
+                <i class="fas fa-sign-out-alt" style="margin-right: 0.5rem;"></i>Logout
+            </a>
+        </div>
     </nav>
+
+    <style>
+        #desktop-menu a:hover {
+            background-color: rgba(255,255,255,0.1) !important;
+        }
+        
+        #mobile-menu a:hover {
+            background-color: rgba(255,255,255,0.1) !important;
+        }
+        
+        @media (max-width: 1023px) {
+            #desktop-menu {
+                display: none !important;
+            }
+            #mobile-menu-btn {
+                display: block !important;
+            }
+        }
+    </style>
+
+    <script>
+        // Mobile menu toggle
+        const menuBtn = document.getElementById('mobile-menu-btn');
+        if (menuBtn) {
+            menuBtn.addEventListener('click', function() {
+                const mobileMenu = document.getElementById('mobile-menu');
+                const menuOpen = document.getElementById('menu-open');
+                const menuClose = document.getElementById('menu-close');
+                
+                if (mobileMenu.style.display === 'none' || mobileMenu.style.display === '') {
+                    mobileMenu.style.display = 'block';
+                    menuOpen.style.display = 'none';
+                    menuClose.style.display = 'block';
+                } else {
+                    mobileMenu.style.display = 'none';
+                    menuOpen.style.display = 'block';
+                    menuClose.style.display = 'none';
+                }
+            });
+        }
+    </script>
 
     <div class="container-fluid mt-4">
         <!-- Welcome Banner -->
